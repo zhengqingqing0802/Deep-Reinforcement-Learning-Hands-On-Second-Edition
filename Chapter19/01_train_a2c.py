@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     parser = make_parser()
 
-    args, device, save_path, test_env, maxeps = parse_args(parser)
+    args, device, save_path, test_env, maxeps, maxsec = parse_args(parser)
 
     envs = [gym.make(args.env) for _ in range(ENVS_COUNT)]
 
@@ -45,6 +45,8 @@ if __name__ == "__main__":
 
     batch = []
     best_reward = None
+    tstart = time.time()
+
     with ptan.common.utils.RewardTracker(writer) as tracker:
         with ptan.common.utils.TBMeanTracker(writer, batch_size=100) as tb_tracker:
             for step_idx, exp in enumerate(exp_source):
@@ -54,16 +56,20 @@ if __name__ == "__main__":
 
                 rewards_steps = exp_source.pop_rewards_steps()
 
+                tcurr = time.time()
+
+                if (tcurr-tstart) >= maxsec:
+                    break
+                
                 if rewards_steps:
                     rewards, steps = zip(*rewards_steps)
                     tb_tracker.track("episode_steps", np.mean(steps), step_idx)
                     tracker.reward(np.mean(rewards), step_idx)
 
                 if step_idx % TEST_ITERS == 0:
-                    ts = time.time()
                     rewards, steps = test_net(net_act, test_env, device=device)
                     print("Test done in %.2f sec, reward %.3f, steps %d" % (
-                        time.time() - ts, rewards, steps))
+                        time.time() - tcurr, rewards, steps))
                     writer.add_scalar("test_reward", rewards, step_idx)
                     writer.add_scalar("test_steps", steps, step_idx)
                     if best_reward is None or best_reward < rewards:

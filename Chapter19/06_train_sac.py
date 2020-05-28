@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     parser = make_parser()
 
-    args, device, save_path, test_env, maxeps = parse_args(parser)
+    args, device, save_path, test_env, maxeps, maxsec = parse_args(parser)
 
     env = gym.make(args.env)
 
@@ -50,6 +50,8 @@ if __name__ == "__main__":
 
     frame_idx = 0
     best_reward = None
+    tstart = time.time()
+
     with ptan.common.utils.RewardTracker(writer) as tracker:
         with ptan.common.utils.TBMeanTracker(
                 writer, batch_size=10) as tb_tracker:
@@ -112,11 +114,15 @@ if __name__ == "__main__":
 
                 tgt_crt_net.alpha_sync(alpha=1 - 1e-3)
 
+                tcurr = time.time()
+
+                if (tcurr-tstart) >= maxsec:
+                    break
+                
                 if frame_idx % TEST_ITERS == 0:
-                    ts = time.time()
                     rewards, steps = test_net(act_net, test_env, device=device)
                     print("Test done in %.2f sec, reward %.3f, steps %d" % (
-                        time.time() - ts, rewards, steps))
+                        time.time() - tcurr, rewards, steps))
                     writer.add_scalar("test_reward", rewards, frame_idx)
                     writer.add_scalar("test_steps", steps, frame_idx)
                     if best_reward is None or best_reward < rewards:
