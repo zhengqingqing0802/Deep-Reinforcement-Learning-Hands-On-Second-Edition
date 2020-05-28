@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 import os
-import math
 import ptan
 import time
 import gym
-import roboschool
-import argparse
 from tensorboardX import SummaryWriter
 
-from lib import model, test_net, calc_logprob
+from lib import model, test_net, calc_logprob, make_parser, parse_args
 
 import numpy as np
 import torch
@@ -16,7 +13,6 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 
-ENV_ID = "RoboschoolHalfCheetah-v1"
 GAMMA = 0.99
 GAE_LAMBDA = 0.95
 
@@ -25,7 +21,7 @@ LEARNING_RATE_ACTOR = 1e-5
 LEARNING_RATE_CRITIC = 1e-4
 
 PPO_EPS = 0.2
-PPO_EPOCHES = 10
+PPO_EPOCHS = 10
 PPO_BATCH_SIZE = 64
 
 TEST_ITERS = 100000
@@ -62,23 +58,18 @@ def calc_adv_ref(trajectory, net_crt, states_v, device="cpu"):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--cuda", default=False, action='store_true', help='Enable CUDA')
-    parser.add_argument("-n", "--name", required=True, help="Name of the run")
-    parser.add_argument("-e", "--env", default=ENV_ID, help="Environment id, default=" + ENV_ID)
+
+    parser = make_parser()
+
     parser.add_argument("--lrc", default=LEARNING_RATE_CRITIC, type=float, help="Critic learning rate")
     parser.add_argument("--lra", default=LEARNING_RATE_ACTOR, type=float, help="Actor learning rate")
-    args = parser.parse_args()
-    device = torch.device("cuda" if args.cuda else "cpu")
 
-    save_path = os.path.join("saves", "ppo-" + args.name)
-    os.makedirs(save_path, exist_ok=True)
+    args, device, save_path, test_env, maxeps = parse_args(parser)
 
     env = gym.make(args.env)
-    test_env = gym.make(args.env)
 
-    net_act = model.ModelActor(env.observation_space.shape[0], env.action_space.shape[0]).to(device)
-    net_crt = model.ModelCritic(env.observation_space.shape[0]).to(device)
+    net_act = model.ModelActor(env.observation_space.shape[0], env.action_space.shape[0], args.hid).to(device)
+    net_crt = model.ModelCritic(env.observation_space.shape[0], args.hid).to(device)
     print(net_act)
     print(net_crt)
 
@@ -93,7 +84,12 @@ if __name__ == "__main__":
     best_reward = None
     with ptan.common.utils.RewardTracker(writer) as tracker:
         for step_idx, exp in enumerate(exp_source):
+
+            if len(tracker.total_rewards) >= maxeps:
+                break
+
             rewards_steps = exp_source.pop_rewards_steps()
+
             if rewards_steps:
                 rewards, steps = zip(*rewards_steps)
                 writer.add_scalar("episode_steps", np.mean(steps), step_idx)
@@ -142,7 +138,7 @@ if __name__ == "__main__":
             sum_loss_policy = 0.0
             count_steps = 0
 
-            for epoch in range(PPO_EPOCHES):
+            for epoch in range(PPO_EPOCHS):
                 for batch_ofs in range(0, len(trajectory),
                                        PPO_BATCH_SIZE):
                     batch_l = batch_ofs + PPO_BATCH_SIZE

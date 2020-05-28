@@ -2,22 +2,15 @@
 import os
 import ptan
 import gym
-import math
 import time
-import roboschool
-import argparse
 from tensorboardX import SummaryWriter
-import numpy as np
 
-from lib import model, common, test_net
+from lib import model, common, test_net, make_parser, parse_args
 
 import torch
 import torch.optim as optim
-import torch.distributions as distrib
 import torch.nn.functional as F
 
-
-ENV_ID = "RoboschoolHalfCheetah-v1"
 GAMMA = 0.99
 BATCH_SIZE = 64
 LR_ACTS = 1e-4
@@ -29,28 +22,16 @@ SAC_ENTROPY_ALPHA = 0.1
 TEST_ITERS = 10000
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--cuda", default=False, action='store_true', help='Enable CUDA')
-    parser.add_argument("-n", "--name", required=True, help="Name of the run")
-    parser.add_argument("-e", "--env", default=ENV_ID, help="Environment id, default=" + ENV_ID)
-    args = parser.parse_args()
-    device = torch.device("cuda" if args.cuda else "cpu")
 
-    save_path = os.path.join("saves", "sac-" + args.name)
-    os.makedirs(save_path, exist_ok=True)
+    parser = make_parser()
+
+    args, device, save_path, test_env, maxeps = parse_args(parser)
 
     env = gym.make(args.env)
-    test_env = gym.make(args.env)
 
-    act_net = model.ModelActor(
-        env.observation_space.shape[0],
-        env.action_space.shape[0]).to(device)
-    crt_net = model.ModelCritic(
-        env.observation_space.shape[0]
-    ).to(device)
-    twinq_net = model.ModelSACTwinQ(
-        env.observation_space.shape[0],
-        env.action_space.shape[0]).to(device)
+    act_net = model.ModelActor( env.observation_space.shape[0], env.action_space.shape[0], args.hid).to(device)
+    crt_net = model.ModelCritic( env.observation_space.shape[0], args.hid).to(device)
+    twinq_net = model.ModelSACTwinQ( env.observation_space.shape[0], env.action_space.shape[0]).to(device)
     print(act_net)
     print(crt_net)
     print(twinq_net)
@@ -73,6 +54,10 @@ if __name__ == "__main__":
         with ptan.common.utils.TBMeanTracker(
                 writer, batch_size=10) as tb_tracker:
             while True:
+
+                if len(tracker.total_rewards) >= maxeps:
+                    break
+
                 frame_idx += 1
                 buffer.populate(1)
                 rewards_steps = exp_source.pop_rewards_steps()

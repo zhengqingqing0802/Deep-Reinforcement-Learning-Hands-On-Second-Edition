@@ -4,11 +4,9 @@ import math
 import ptan
 import time
 import gym
-import roboschool
-import argparse
 from tensorboardX import SummaryWriter
 
-from lib import model, common, kfac, test_net, calc_logprob
+from lib import model, common, kfac, test_net, calc_logprob, make_parser, parse_args
 
 import numpy as np
 import torch
@@ -16,7 +14,6 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 
-ENV_ID = "RoboschoolHalfCheetah-v1"
 GAMMA = 0.99
 REWARD_STEPS = 5
 BATCH_SIZE = 32
@@ -28,21 +25,15 @@ ENVS_COUNT = 16
 TEST_ITERS = 100000
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--cuda", default=False, action='store_true', help='Enable CUDA')
-    parser.add_argument("-n", "--name", required=True, help="Name of the run")
-    parser.add_argument("-e", "--env", default=ENV_ID, help="Environment id, default=" + ENV_ID)
-    args = parser.parse_args()
-    device = torch.device("cuda" if args.cuda else "cpu")
 
-    save_path = os.path.join("saves", "acktr-" + args.name)
-    os.makedirs(save_path, exist_ok=True)
+    parser = make_parser()
+
+    args, device, save_path, test_env, maxeps = parse_args(parser)
 
     envs = [gym.make(args.env) for _ in range(ENVS_COUNT)]
-    test_env = gym.make(args.env)
 
-    net_act = model.ModelActor(envs[0].observation_space.shape[0], envs[0].action_space.shape[0]).to(device)
-    net_crt = model.ModelCritic(envs[0].observation_space.shape[0]).to(device)
+    net_act = model.ModelActor(envs[0].observation_space.shape[0], envs[0].action_space.shape[0], args.hid).to(device)
+    net_crt = model.ModelCritic(envs[0].observation_space.shape[0], args.hid).to(device)
     print(net_act)
     print(net_crt)
 
@@ -58,6 +49,10 @@ if __name__ == "__main__":
     with ptan.common.utils.RewardTracker(writer) as tracker:
         with ptan.common.utils.TBMeanTracker(writer, batch_size=100) as tb_tracker:
             for step_idx, exp in enumerate(exp_source):
+
+                if len(tracker.total_rewards) >= maxeps:
+                    break
+
                 rewards_steps = exp_source.pop_rewards_steps()
                 if rewards_steps:
                     rewards, steps = zip(*rewards_steps)
