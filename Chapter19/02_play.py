@@ -52,3 +52,4 @@ if __name__ == "__main__":
             img = Image.fromarray(o)
             img.save("img_%05d.png" % total_steps)
     print("In %d steps we got %.3f reward" % (total_steps, total_reward))
+    env.close()
