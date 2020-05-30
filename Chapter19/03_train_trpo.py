@@ -59,7 +59,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", default=LEARNING_RATE_CRITIC, type=float, help="Critic learning rate")
     parser.add_argument("--maxkl", default=TRPO_MAX_KL, type=float, help="Maximum KL divergence")
 
-    args, device, save_path, test_env, maxeps, maxsec = parse_args(parser)
+    args, device, save_path, test_env, maxeps, maxsec = parse_args(parser, "trpo")
 
     env = gym.make(args.env)
 

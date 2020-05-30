@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     parser = make_parser()
 
-    args, device, save_path, test_env, maxeps, maxsec = parse_args(parser)
+    args, device, save_path, test_env, maxeps, maxsec = parse_args(parser, "acktr")
 
     envs = [gym.make(args.env) for _ in range(ENVS_COUNT)]
 

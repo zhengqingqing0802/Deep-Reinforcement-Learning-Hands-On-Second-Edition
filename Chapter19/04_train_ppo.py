@@ -64,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument("--lrc", default=LEARNING_RATE_CRITIC, type=float, help="Critic learning rate")
     parser.add_argument("--lra", default=LEARNING_RATE_ACTOR, type=float, help="Actor learning rate")
 
-    args, device, save_path, test_env, maxeps, maxsec = parse_args(parser)
+    args, device, save_path, test_env, maxeps, maxsec = parse_args(parser, "ppo")
 
     env = gym.make(args.env)
 

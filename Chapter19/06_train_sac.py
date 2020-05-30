@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     parser = make_parser()
 
-    args, device, save_path, test_env, maxeps, maxsec = parse_args(parser)
+    args, device, save_path, test_env, maxeps, maxsec = parse_args(parser, "sac")
 
     env = gym.make(args.env)
 
