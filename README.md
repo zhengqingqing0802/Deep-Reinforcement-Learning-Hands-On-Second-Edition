@@ -9,4 +9,6 @@ Deep-Reinforcement-Learning-Hands-On-Second-Edition, published by Packt
 
 3. Clone this repository
 
-4. ```cd /Deep-Reinforcement-Learning-Hands-On-Second-Edition```
+4. ```cd /Deep-Reinforcement-Learning-Hands-On-Second-Edition/Chapter19```
+
+5. ```python3 04_train_ppo.py -n pendulum```
