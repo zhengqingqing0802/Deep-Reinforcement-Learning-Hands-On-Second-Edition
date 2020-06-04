@@ -5,7 +5,7 @@ import gym
 import time
 from tensorboardX import SummaryWriter
 
-from lib import model, common, test_net, make_parser, parse_args, make_env
+from lib import model, common, test_net, make_parser, parse_args, make_env, make_nets
 
 import torch
 import torch.optim as optim
@@ -29,23 +29,21 @@ if __name__ == "__main__":
 
     env = make_env(args)
 
-    act_net = model.ModelActor( env.observation_space.shape[0], env.action_space.shape[0], args.hid).to(device)
-    crt_net = model.ModelCritic( env.observation_space.shape[0], args.hid).to(device)
+    net_act, net_crt = make_nets(args, env, device)
+
     twinq_net = model.ModelSACTwinQ( env.observation_space.shape[0], env.action_space.shape[0]).to(device)
-    print(act_net)
-    print(crt_net)
     print(twinq_net)
 
-    tgt_crt_net = ptan.agent.TargetNet(crt_net)
+    tgt_net_crt = ptan.agent.TargetNet(net_crt)
 
     writer = SummaryWriter(comment="-sac_" + args.name)
-    agent = model.AgentDDPG(act_net, device=device)
+    agent = model.AgentDDPG(net_act, device=device)
     exp_source = ptan.experience.ExperienceSourceFirstLast(
         env, agent, gamma=GAMMA, steps_count=1)
     buffer = ptan.experience.ExperienceReplayBuffer(
         exp_source, buffer_size=REPLAY_SIZE)
-    act_opt = optim.Adam(act_net.parameters(), lr=LR_ACTS)
-    crt_opt = optim.Adam(crt_net.parameters(), lr=LR_VALS)
+    act_opt = optim.Adam(net_act.parameters(), lr=LR_ACTS)
+    crt_opt = optim.Adam(net_crt.parameters(), lr=LR_VALS)
     twinq_opt = optim.Adam(twinq_net.parameters(), lr=LR_VALS)
 
     frame_idx = 0
@@ -74,8 +72,8 @@ if __name__ == "__main__":
                 batch = buffer.sample(BATCH_SIZE)
                 states_v, actions_v, ref_vals_v, ref_q_v = \
                     common.unpack_batch_sac(
-                        batch, tgt_crt_net.target_model,
-                        twinq_net, act_net, GAMMA,
+                        batch, tgt_net_crt.target_model,
+                        twinq_net, net_act, GAMMA,
                         SAC_ENTROPY_ALPHA, device)
 
                 tb_tracker.track("ref_v", ref_vals_v.mean(), frame_idx)
@@ -96,7 +94,7 @@ if __name__ == "__main__":
 
                 # Critic
                 crt_opt.zero_grad()
-                val_v = crt_net(states_v)
+                val_v = net_crt(states_v)
                 v_loss_v = F.mse_loss(val_v.squeeze(),
                                       ref_vals_v.detach())
                 v_loss_v.backward()
@@ -105,14 +103,14 @@ if __name__ == "__main__":
 
                 # Actor
                 act_opt.zero_grad()
-                acts_v = act_net(states_v)
+                acts_v = net_act(states_v)
                 q_out_v, _ = twinq_net(states_v, acts_v)
                 act_loss = -q_out_v.mean()
                 act_loss.backward()
                 act_opt.step()
                 tb_tracker.track("loss_act", act_loss, frame_idx)
 
-                tgt_crt_net.alpha_sync(alpha=1 - 1e-3)
+                tgt_net_crt.alpha_sync(alpha=1 - 1e-3)
 
                 tcurr = time.time()
 
@@ -120,7 +118,7 @@ if __name__ == "__main__":
                     break
                 
                 if frame_idx % TEST_ITERS == 0:
-                    rewards, steps = test_net(act_net, test_env, device=device)
+                    rewards, steps = test_net(net_act, test_env, device=device)
                     print("Test done in %.2f sec, reward %.3f, steps %d" % (
                         time.time() - tcurr, rewards, steps))
                     writer.add_scalar("test_reward", rewards, frame_idx)
@@ -130,7 +128,7 @@ if __name__ == "__main__":
                             print("Best reward updated: %.3f -> %.3f" % (best_reward, rewards))
                             name = "best_%+.3f_%d.dat" % (rewards, frame_idx)
                             fname = os.path.join(save_path, name)
-                            torch.save(act_net.state_dict(), fname)
+                            torch.save(net_act.state_dict(), fname)
                         best_reward = rewards
 
     pass

@@ -6,7 +6,7 @@ import time
 import gym
 from tensorboardX import SummaryWriter
 
-from lib import model, common, test_net, calc_logprob, make_parser, parse_args, make_env
+from lib import model, common, test_net, calc_logprob, make_parser, parse_args, make_env, make_nets
 
 import numpy as np
 import torch
@@ -31,10 +31,7 @@ if __name__ == "__main__":
 
     envs = [make_env(args) for _ in range(ENVS_COUNT)]
 
-    net_act = model.ModelActor(envs[0].observation_space.shape[0], envs[0].action_space.shape[0], args.hid).to(device)
-    net_crt = model.ModelCritic(envs[0].observation_space.shape[0], args.hid).to(device)
-    print(net_act)
-    print(net_crt)
+    net_act, net_crt = make_nets(args, envs[0], device)
 
     writer = SummaryWriter(comment="-a2c_" + args.name)
     agent = model.AgentA2C(net_act, device=device)

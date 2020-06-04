@@ -10,6 +10,13 @@ def make_env(args):
 
     return gym.make(args.env) if args.datafile is None else gym.make(args.env, datafile=args.datafile)
 
+def make_nets(args, env, device):
+    net_act = model.ModelActor(env.observation_space.shape[0], env.action_space.shape[0], args.hid).to(device)
+    net_crt = model.ModelCritic(env.observation_space.shape[0], args.hid).to(device)
+    print(net_act)
+    print(net_crt)
+    return net_act, net_crt
+
 def make_parser(env_id="Pendulum-v0", nhid=64):
     parser = argparse.ArgumentParser()
     parser.add_argument("--cuda", default=False, action='store_true', help='Enable CUDA')
