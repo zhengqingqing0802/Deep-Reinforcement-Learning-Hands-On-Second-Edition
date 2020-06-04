@@ -2,7 +2,6 @@
 import os
 import ptan
 import time
-import gym
 from tensorboardX import SummaryWriter
 
 from lib import model, trpo, test_net, calc_logprob, make_parser, parse_args, make_env, make_nets

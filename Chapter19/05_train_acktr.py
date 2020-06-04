@@ -3,7 +3,6 @@ import os
 import math
 import ptan
 import time
-import gym
 from tensorboardX import SummaryWriter
 
 from lib import model, common, kfac, test_net, calc_logprob, make_parser, parse_args, make_env

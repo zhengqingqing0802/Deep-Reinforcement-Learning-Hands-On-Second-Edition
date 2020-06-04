@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import gym
 from gym import wrappers
 
 from lib import model, kfac, make_env
