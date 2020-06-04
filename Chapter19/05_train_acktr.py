@@ -6,7 +6,7 @@ import time
 import gym
 from tensorboardX import SummaryWriter
 
-from lib import model, common, kfac, test_net, calc_logprob, make_parser, parse_args
+from lib import model, common, kfac, test_net, calc_logprob, make_parser, parse_args, make_env
 
 import numpy as np
 import torch
@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     args, device, save_path, test_env, maxeps, maxsec = parse_args(parser, "acktr")
 
-    envs = [gym.make(args.env) for _ in range(ENVS_COUNT)]
+    envs = [make_env(args.env) for _ in range(ENVS_COUNT)]
 
     net_act = model.ModelActor(envs[0].observation_space.shape[0], envs[0].action_space.shape[0], args.hid).to(device)
     net_crt = model.ModelCritic(envs[0].observation_space.shape[0], args.hid).to(device)

@@ -6,10 +6,15 @@ import math
 import argparse
 import os
 
+def make_env(args):
+
+    return gym.make(args.env) if args.datafile is None else gym.make(args.env, datafile=args.datafile)
+
 def make_parser(env_id="Pendulum-v0", nhid=64):
     parser = argparse.ArgumentParser()
     parser.add_argument("--cuda", default=False, action='store_true', help='Enable CUDA')
     parser.add_argument("-n", "--name", required=True, help="Name of the run")
+    parser.add_argument("-d", "--datafile", required=False, help="Name of data file to load")
     parser.add_argument("-e", "--env", default=env_id, help="Environment id, default=" + env_id)
     parser.add_argument("--hid", default=nhid, type=int, help="Hidden units, default=" + str(nhid))
     parser.add_argument("--maxeps", default=None, type=int, help="Maximum number of episodes, default=None")
@@ -22,7 +27,7 @@ def parse_args(parser, algo):
     device = torch.device("cuda" if args.cuda else "cpu")
     save_path = os.path.join("saves", algo + "-" + args.name)
     os.makedirs(save_path, exist_ok=True)
-    test_env = gym.make(args.env)
+    test_env = make_env(args)
     maxeps = np.inf if args.maxeps is None else args.maxeps
     maxsec = np.inf if args.maxhrs is None else (args.maxhrs * 3600)
     return args, device, save_path, test_env, maxeps, maxsec

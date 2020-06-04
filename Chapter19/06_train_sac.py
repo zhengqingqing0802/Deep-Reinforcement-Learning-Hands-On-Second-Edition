@@ -5,7 +5,7 @@ import gym
 import time
 from tensorboardX import SummaryWriter
 
-from lib import model, common, test_net, make_parser, parse_args
+from lib import model, common, test_net, make_parser, parse_args, make_env
 
 import torch
 import torch.optim as optim
@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     args, device, save_path, test_env, maxeps, maxsec = parse_args(parser, "sac")
 
-    env = gym.make(args.env)
+    env = make_env(args)
 
     act_net = model.ModelActor( env.observation_space.shape[0], env.action_space.shape[0], args.hid).to(device)
     crt_net = model.ModelCritic( env.observation_space.shape[0], args.hid).to(device)

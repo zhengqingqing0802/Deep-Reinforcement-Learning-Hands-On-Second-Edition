@@ -3,7 +3,7 @@ import argparse
 import gym
 from gym import wrappers
 
-from lib import model, kfac
+from lib import model, kfac, make_env
 from PIL import Image
 
 import numpy as np
@@ -17,13 +17,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", required=True, help="Model file to load")
     parser.add_argument("-e", "--env", default=ENV_ID, help="Environment name to use, default=" + ENV_ID)
+    parser.add_argument("-d", "--datafile", required=False, help="Name of data file to load")
     parser.add_argument("--hid", default=NHID, type=int, help="Hidden units, default=" + str(NHID))
     parser.add_argument("-r", "--record", help="If specified, sets the recording dir, default=Disabled")
     parser.add_argument("-s", "--save", type=int, help="If specified, save every N-th step as an image")
     parser.add_argument("--acktr", default=False, action='store_true', help="Enable Acktr-specific tweaks")
     args = parser.parse_args()
 
-    env = gym.make(args.env)
+    env = make_env(args)
     if args.record:
         env = wrappers.Monitor(env, args.record)
 
