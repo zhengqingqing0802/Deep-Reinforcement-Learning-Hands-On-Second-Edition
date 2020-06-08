@@ -68,7 +68,7 @@ if __name__ == "__main__":
     env = make_env(args)
 
     net_act, net_crt = make_nets(args, env, device)
-    
+
     writer = SummaryWriter(comment="-ppo_" + args.name)
     agent = model.AgentA2C(net_act, device=device)
     exp_source = ptan.experience.ExperienceSource(env, agent, steps_count=1)

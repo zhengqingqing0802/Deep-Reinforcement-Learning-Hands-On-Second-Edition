@@ -4,6 +4,7 @@ from gym import wrappers
 
 from lib import model, kfac, make_env
 from PIL import Image
+import os
 
 import numpy as np
 import torch
@@ -50,6 +51,8 @@ if __name__ == "__main__":
         if args.save is not None and total_steps % args.save == 0:
             o = env.render('rgb_array')
             img = Image.fromarray(o)
-            img.save("img_%05d.png" % total_steps)
+            if not os.path.exists('images'):
+                os.mkdir('images')
+            img.save("images/img_%05d.png" % total_steps)
     print("In %d steps we got %.3f reward" % (total_steps, total_reward))
     env.close()
