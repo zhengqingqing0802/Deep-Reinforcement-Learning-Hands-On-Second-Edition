@@ -6,6 +6,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+import argparse
+
 from tensorboardX import SummaryWriter
 
 
@@ -16,12 +18,12 @@ LEARNING_RATE = 0.001
 
 
 class Net(nn.Module):
-    def __init__(self, obs_size, action_size):
+    def __init__(self, obs_size, action_size, nhid):
         super(Net, self).__init__()
         self.net = nn.Sequential(
-            nn.Linear(obs_size, 32),
+            nn.Linear(obs_size, nhid),
             nn.ReLU(),
-            nn.Linear(32, action_size),
+            nn.Linear(nhid, action_size),
             nn.Softmax(dim=1)
         )
 
@@ -88,10 +90,20 @@ def train_step(net, batch_noise, batch_reward, writer, step_idx):
 
 
 if __name__ == "__main__":
-    writer = SummaryWriter(comment="-cartpole-es")
-    env = gym.make("CartPole-v0")
 
-    net = Net(env.observation_space.shape[0], env.action_space.n)
+    ENV = "CartPole-v0"
+    NHID = 32
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-e", "--env", default=ENV, help=("Environment id, default=%s" % ENV))
+    parser.add_argument("--hid", default=NHID, type=int, help=("Hidden units, default=%d" % NHID))
+    args = parser.parse_args()
+ 
+    writer = SummaryWriter(comment=("-%s" % args.env))
+
+    env = gym.make(args.env)
+
+    net = Net(env.observation_space.shape[0], env.action_space.n, args.hid)
     print(net)
 
     step_idx = 0
