@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-import argparse
+from lib import parse_args
 
 from tensorboardX import SummaryWriter
 
@@ -94,10 +94,7 @@ if __name__ == "__main__":
     ENV = "CartPole-v0"
     NHID = 32
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-e", "--env", default=ENV, help=("Environment id, default=%s" % ENV))
-    parser.add_argument("--hid", default=NHID, type=int, help=("Hidden units, default=%d" % NHID))
-    args = parser.parse_args()
+    args = parse_args("CartPole-v0", 32)
  
     writer = SummaryWriter(comment=("-%s" % args.env))
 
