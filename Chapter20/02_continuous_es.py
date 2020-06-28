@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import gym
-import roboschool
 import ptan
 import time
 import argparse
@@ -156,7 +155,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     device = "cuda" if args.cuda else "cpu"
 
-    env_name = "RoboschoolHalfCheetah-v1"
+    env_name = "roboschool:RoboschoolHalfCheetah-v1"
 
     writer = SummaryWriter(comment="%s-es_lr=%.3e_sigma=%.3e" % (env_name, args.lr, args.noise_std))
 
