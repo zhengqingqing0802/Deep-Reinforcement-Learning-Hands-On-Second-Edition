@@ -32,7 +32,7 @@ RewardsItem = collections.namedtuple(
 
 
 class Net(nn.Module):
-    def __init__(self, obs_size, act_size, hid_size=64):
+    def __init__(self, obs_size, act_size, hid_size):
         super(Net, self).__init__()
 
         self.mu = nn.Sequential(
@@ -124,8 +124,7 @@ def train_step(optimizer, net, batch_noise, batch_reward,
 
 def worker_func(env_name, worker_id, params_queue, rewards_queue, device, noise_std):
     env = gym.make(env_name)
-    net = Net(env.observation_space.shape[0],
-              env.action_space.shape[0]).to(device)
+    net = Net(env.observation_space.shape[0], env.action_space.shape[0], 64).to(device)
     net.eval()
 
     while True:
@@ -167,7 +166,7 @@ if __name__ == "__main__":
 
     env = gym.make(env_name)
 
-    net = Net(env.observation_space.shape[0], env.action_space.shape[0])
+    net = Net(env.observation_space.shape[0], env.action_space.shape[0], 64)
     print(net)
 
     params_queues = [
