@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from lib import parse_args
+from lib import make_parser
 
 from tensorboardX import SummaryWriter
 
@@ -94,7 +94,9 @@ if __name__ == "__main__":
     ENV = "CartPole-v0"
     NHID = 32
 
-    args = parse_args("CartPole-v0", 32)
+    parser = make_parser("CartPole-v0", 32)
+
+    args = parser.parse_args()
  
     writer = SummaryWriter(comment=("-%s" % args.env))
 
