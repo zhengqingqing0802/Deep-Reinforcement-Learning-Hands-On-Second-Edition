@@ -30,10 +30,6 @@ RewardsItem = collections.namedtuple(
                                 'neg_reward', 'steps'])
 
 
-def make_env():
-    return gym.make("RoboschoolHalfCheetah-v1")
-
-
 class Net(nn.Module):
     def __init__(self, obs_size, act_size, hid_size=64):
         super(Net, self).__init__()
@@ -125,9 +121,8 @@ def train_step(optimizer, net, batch_noise, batch_reward,
     optimizer.step()
 
 
-def worker_func(worker_id, params_queue, rewards_queue,
-                device, noise_std):
-    env = make_env()
+def worker_func(env_name, worker_id, params_queue, rewards_queue, device, noise_std):
+    env = gym.make(env_name)
     net = Net(env.observation_space.shape[0],
               env.action_space.shape[0]).to(device)
     net.eval()
@@ -161,8 +156,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     device = "cuda" if args.cuda else "cpu"
 
-    writer = SummaryWriter(comment="-cheetah-es_lr=%.3e_sigma=%.3e" % (args.lr, args.noise_std))
-    env = make_env()
+    env_name = "RoboschoolHalfCheetah-v1"
+
+    writer = SummaryWriter(comment="%s-es_lr=%.3e_sigma=%.3e" % (env_name, args.lr, args.noise_std))
+
+    env = gym.make(env_name)
+
     net = Net(env.observation_space.shape[0], env.action_space.shape[0])
     print(net)
 
@@ -174,7 +173,7 @@ if __name__ == "__main__":
     workers = []
 
     for idx, params_queue in enumerate(params_queues):
-        p_args = (idx, params_queue, rewards_queue,
+        p_args = (env_name, idx, params_queue, rewards_queue,
                 device, args.noise_std)
         proc = mp.Process(target=worker_func, args=p_args)
         proc.start()
