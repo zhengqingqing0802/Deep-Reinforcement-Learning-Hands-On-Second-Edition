@@ -11,6 +11,8 @@ import torch.nn as nn
 from torch import multiprocessing as mp
 from torch import optim
 
+from lib import make_parser
+
 from tensorboardX import SummaryWriter
 
 NOISE_STD = 0.05
@@ -147,12 +149,16 @@ def worker_func(env_name, worker_id, params_queue, rewards_queue, device, noise_
 
 if __name__ == "__main__":
     mp.set_start_method('spawn')
-    parser = argparse.ArgumentParser()
+
+    parser = make_parser("roboschool:RoboschoolHalfCheetah-v1", 64)
+
     parser.add_argument("--cuda", default=False, action='store_true', help="Enable CUDA mode")
     parser.add_argument("--lr", type=float, default=LEARNING_RATE)
     parser.add_argument("--noise-std", type=float, default=NOISE_STD)
     parser.add_argument("--iters", type=int, default=MAX_ITERS)
+
     args = parser.parse_args()
+
     device = "cuda" if args.cuda else "cpu"
 
     env_name = "roboschool:RoboschoolHalfCheetah-v1"
