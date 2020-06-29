@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import sys
 import gym
-import roboschool
 import collections
 import copy
 import time
@@ -11,8 +10,9 @@ import torch
 import torch.nn as nn
 import torch.multiprocessing as mp
 
-from tensorboardX import SummaryWriter
+from lib import make_parser
 
+from tensorboardX import SummaryWriter
 
 NOISE_STD = 0.01
 POPULATION_SIZE = 2000
@@ -23,7 +23,7 @@ MAX_SEED = 2**32 - 1
 
 
 class Net(nn.Module):
-    def __init__(self, obs_size, act_size, hid_size=64):
+    def __init__(self, obs_size, act_size, hid_size):
         super(Net, self).__init__()
 
         self.mu = nn.Sequential(
@@ -45,7 +45,7 @@ def evaluate(env, net):
     steps = 0
     while True:
         obs_v = torch.FloatTensor([obs])
-        action_v = net(obs_v)
+        action_v = net(obs_v.type(torch.FloatTensor))
         obs, r, done, _ = env.step(action_v.data.numpy()[0])
         reward += r
         steps += 1
@@ -64,10 +64,10 @@ def mutate_net(net, seed, copy_net=True):
     return new_net
 
 
-def build_net(env, seeds):
+def build_net(env, seeds, nhid):
     torch.manual_seed(seeds[0])
     net = Net(env.observation_space.shape[0],
-              env.action_space.shape[0])
+              env.action_space.shape[0], nhid)
     for seed in seeds[1:]:
         net = mutate_net(net, seed, copy_net=False)
     return net
@@ -77,8 +77,8 @@ OutputItem = collections.namedtuple(
     'OutputItem', field_names=['seeds', 'reward', 'steps'])
 
 
-def worker_func(input_queue, output_queue):
-    env = gym.make("RoboschoolHalfCheetah-v1")
+def worker_func(env_name, input_queue, output_queue, nhid):
+    env = gym.make(env_name)
     cache = {}
 
     while True:
@@ -92,9 +92,9 @@ def worker_func(input_queue, output_queue):
                 if net is not None:
                     net = mutate_net(net, net_seeds[-1])
                 else:
-                    net = build_net(env, net_seeds)
+                    net = build_net(env, net_seeds, nhid)
             else:
-                net = build_net(env, net_seeds)
+                net = build_net(env, net_seeds, nhid)
             new_cache[net_seeds] = net
             reward, steps = evaluate(env, net)
             output_queue.put(OutputItem(
@@ -103,8 +103,14 @@ def worker_func(input_queue, output_queue):
 
 
 if __name__ == "__main__":
+
     mp.set_start_method('spawn')
-    writer = SummaryWriter(comment="-cheetah-ga")
+
+    parser = make_parser("Pendulum-v0", 64)
+
+    args = parser.parse_args()
+
+    writer = SummaryWriter(comment=args.env)
 
     input_queues = []
     output_queue = mp.Queue(maxsize=WORKERS_COUNT)
@@ -112,7 +118,7 @@ if __name__ == "__main__":
     for _ in range(WORKERS_COUNT):
         input_queue = mp.Queue(maxsize=1)
         input_queues.append(input_queue)
-        w = mp.Process(target=worker_func, args=(input_queue, output_queue))
+        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid))
         w.start()
         seeds = [(np.random.randint(MAX_SEED),) for _ in range(SEEDS_PER_WORKER)]
         input_queue.put(seeds)
