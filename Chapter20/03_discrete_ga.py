@@ -49,11 +49,11 @@ def mutate_parent(net, noise_std):
 
 if __name__ == "__main__":
 
-    NOISE_STD = 0.01
-    POPULATION_SIZE = 50
-    PARENTS_COUNT = 10
-
     parser = make_parser("CartPole-v0", 32)
+
+    parser.add_argument("--noise-std", type=float, default=0.01)
+    parser.add_argument("--population-size", type=int, default=50)
+    parser.add_argument("--parents-count", type=int, default=10)
 
     args = parser.parse_args()
  
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     gen_idx = 0
     nets = [
         Net(env.observation_space.shape[0], env.action_space.n, args.hid)
-        for _ in range(POPULATION_SIZE)
+        for _ in range(args.population_size)
     ]
     population = [
         (net, evaluate(env, net))
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     ]
     while True:
         population.sort(key=lambda p: p[1], reverse=True)
-        rewards = [p[1] for p in population[:PARENTS_COUNT]]
+        rewards = [p[1] for p in population[:args.parents_count]]
         reward_mean = np.mean(rewards)
         reward_max = np.max(rewards)
         reward_std = np.std(rewards)
@@ -90,10 +90,10 @@ if __name__ == "__main__":
         # generate next population
         prev_population = population
         population = [population[0]]
-        for _ in range(POPULATION_SIZE-1):
-            parent_idx = np.random.randint(0, PARENTS_COUNT)
+        for _ in range(args.population_size-1):
+            parent_idx = np.random.randint(0, args.parents_count)
             parent = prev_population[parent_idx][0]
-            net = mutate_parent(parent, NOISE_STD)
+            net = mutate_parent(parent, args.noise_std)
             fitness = evaluate(env, net)
             population.append((net, fitness))
         gen_idx += 1
