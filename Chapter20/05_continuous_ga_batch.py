@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-import sys
 import gym
-import roboschool
-import argparse
 import itertools
 import collections
 import copy
@@ -13,8 +10,9 @@ import torch
 import torch.nn as nn
 import torch.multiprocessing as mp
 
-from tensorboardX import SummaryWriter
+from lib import make_parser
 
+from tensorboardX import SummaryWriter
 
 NOISE_STD = 0.005
 POPULATION_SIZE = 2000
@@ -50,7 +48,7 @@ class MultiNoiseLinear(nn.Linear):
 
 
 class Net(nn.Module):
-    def __init__(self, obs_size, act_size, hid_size=64):
+    def __init__(self, obs_size, act_size, hid_size):
         super(Net, self).__init__()
 
         self.nonlin = nn.Tanh()
@@ -132,9 +130,9 @@ def mutate_net(net, seed, copy_net=True):
     return new_net
 
 
-def build_net(env, seeds):
+def build_net(env, seeds, nhid):
     torch.manual_seed(seeds[0])
-    net = Net(env.observation_space.shape[0], env.action_space.shape[0])
+    net = Net(env.observation_space.shape[0], env.action_space.shape[0], nhid)
     for seed in seeds[1:]:
         net = mutate_net(net, seed, copy_net=False)
     return net
@@ -143,13 +141,14 @@ def build_net(env, seeds):
 OutputItem = collections.namedtuple('OutputItem', field_names=['seeds', 'reward', 'steps'])
 
 
-def worker_func(input_queue, output_queue, device="cpu"):
-    env_pool = [gym.make("RoboschoolHalfCheetah-v1")]
+def worker_func(env_name, input_queue, output_queue, nhid, device):
+
+    env_pool = [gym.make(env_name)]
 
     # first generation -- just evaluate given single seeds
     parents = input_queue.get()
     for seed in parents:
-        net = build_net(env_pool[0], seed).to(device)
+        net = build_net(env_pool[0], seed, nhid).to(device)
         net.zero_noise(batch_size=1)
         reward, steps = evaluate(env_pool[0], net, device)
         output_queue.put((seed, reward, steps))
@@ -162,22 +161,26 @@ def worker_func(input_queue, output_queue, device="cpu"):
         for parent_seeds, children_iter in itertools.groupby(parents, key=lambda s: s[:-1]):
             batch = list(children_iter)
             children_seeds = [b[-1] for b in batch]
-            net = build_net(env_pool[0], parent_seeds).to(device)
+            net = build_net(env_pool[0], parent_seeds, nhid).to(device)
             net.set_noise_seeds(children_seeds)
             batch_size = len(children_seeds)
             while len(env_pool) < batch_size:
-                env_pool.append(gym.make("RoboschoolHalfCheetah-v1"))
+                env_pool.append(gym.make(env_name))
             rewards, steps = evaluate_batch(env_pool[:batch_size], net, device)
             for seeds, reward, step in zip(batch, rewards, steps):
                 output_queue.put((seeds, reward, step))
 
 
 if __name__ == "__main__":
+
     mp.set_start_method('spawn')
-    parser = argparse.ArgumentParser()
+
+    parser = make_parser("Pendulum-v0", 64)
+
     parser.add_argument("--cuda", default=False, action='store_true')
     args = parser.parse_args()
-    writer = SummaryWriter(comment="-cheetah-ga-batch")
+
+    writer = SummaryWriter(comment="-%s" % args.env)
     device = "cuda" if args.cuda else "cpu"
 
     input_queues = []
@@ -186,7 +189,7 @@ if __name__ == "__main__":
     for _ in range(WORKERS_COUNT):
         input_queue = mp.Queue(maxsize=1)
         input_queues.append(input_queue)
-        w = mp.Process(target=worker_func, args=(input_queue, output_queue, device))
+        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, device))
         w.start()
         seeds = [(np.random.randint(MAX_SEED),) for _ in range(SEEDS_PER_WORKER)]
         input_queue.put(seeds)
