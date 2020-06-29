@@ -10,11 +10,6 @@ from lib import make_parser
 
 from tensorboardX import SummaryWriter
 
-NOISE_STD = 0.01
-POPULATION_SIZE = 50
-PARENTS_COUNT = 10
-
-
 class Net(nn.Module):
     def __init__(self, obs_size, action_size, nhid):
         super(Net, self).__init__()
@@ -43,16 +38,20 @@ def evaluate(env, net):
     return reward
 
 
-def mutate_parent(net):
+def mutate_parent(net, noise_std):
     new_net = copy.deepcopy(net)
     for p in new_net.parameters():
         noise = np.random.normal(size=p.data.size())
         noise_t = torch.FloatTensor(noise)
-        p.data += NOISE_STD * noise_t
+        p.data += noise_std * noise_t
     return new_net
 
 
 if __name__ == "__main__":
+
+    NOISE_STD = 0.01
+    POPULATION_SIZE = 50
+    PARENTS_COUNT = 10
 
     parser = make_parser("CartPole-v0", 32)
 
@@ -94,7 +93,7 @@ if __name__ == "__main__":
         for _ in range(POPULATION_SIZE-1):
             parent_idx = np.random.randint(0, PARENTS_COUNT)
             parent = prev_population[parent_idx][0]
-            net = mutate_parent(parent)
+            net = mutate_parent(parent, NOISE_STD)
             fitness = evaluate(env, net)
             population.append((net, fitness))
         gen_idx += 1
