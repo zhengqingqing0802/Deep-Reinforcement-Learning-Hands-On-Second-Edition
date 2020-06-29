@@ -47,14 +47,13 @@ class Net(nn.Module):
     def forward(self, x):
         return self.mu(x)
 
-
 def evaluate(env, net, device="cpu"):
     obs = env.reset()
     reward = 0.0
     steps = 0
     while True:
         obs_v = ptan.agent.default_states_preprocessor([obs]).to(device)
-        action_v = net(obs_v)
+        action_v = net(obs_v.type(torch.FloatTensor))
         action = action_v.data.cpu().numpy()[0]
         obs, r, done, _ = env.step(action)
         reward += r
@@ -123,6 +122,7 @@ def train_step(optimizer, net, batch_noise, batch_reward,
 
 
 def worker_func(env_name, worker_id, params_queue, rewards_queue, device, noise_std, nhid):
+
     env = gym.make(env_name)
     net = Net(env.observation_space.shape[0], env.action_space.shape[0], nhid).to(device)
     net.eval()
@@ -150,7 +150,7 @@ if __name__ == "__main__":
 
     mp.set_start_method('spawn')
 
-    parser = make_parser("roboschool:RoboschoolHalfCheetah-v1", 64)
+    parser = make_parser("Pendulum-v0", 64)
 
     parser.add_argument("--cuda", default=False, action='store_true', help="Enable CUDA mode")
     parser.add_argument("--lr", type=float, default=LEARNING_RATE)
@@ -182,7 +182,9 @@ if __name__ == "__main__":
         workers.append(proc)
 
     print("All started!")
+
     optimizer = optim.Adam(net.parameters(), lr=args.lr)
+
 
     for step_idx in range(args.iters):
         # broadcasting network params
