@@ -46,6 +46,8 @@ def mutate_parent(net, noise_std):
         p.data += noise_std * noise_t
     return new_net
 
+def get_fitnesses(env, nets):
+    return [evaluate(env, net) for net in nets]
 
 if __name__ == "__main__":
 
@@ -66,10 +68,11 @@ if __name__ == "__main__":
         Net(env.observation_space.shape[0], env.action_space.n, args.hid)
         for _ in range(args.population_size)
     ]
-    population = [
-        (net, evaluate(env, net))
-        for net in nets
-    ]
+
+    fits =  get_fitnesses(env, nets)
+
+    population = list(zip(nets, fits))
+
     while True:
         population.sort(key=lambda p: p[1], reverse=True)
         rewards = [p[1] for p in population[:args.parents_count]]
@@ -89,12 +92,16 @@ if __name__ == "__main__":
 
         # generate next population
         prev_population = population
-        population = [population[0]]
+        nets = []
         for _ in range(args.population_size-1):
             parent_idx = np.random.randint(0, args.parents_count)
             parent = prev_population[parent_idx][0]
             net = mutate_parent(parent, args.noise_std)
-            fitness = evaluate(env, net)
-            population.append((net, fitness))
+            nets.append(net)
         gen_idx += 1
+
+        fits =  get_fitnesses(env, nets)
+
+        population = [population[0]] + list(zip(nets, fits)) 
+
     writer.close()
