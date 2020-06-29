@@ -2,7 +2,6 @@
 import gym
 import ptan
 import time
-import argparse
 import numpy as np
 import collections
 
