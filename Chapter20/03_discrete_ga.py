@@ -10,6 +10,8 @@ from lib import make_parser
 
 from tensorboardX import SummaryWriter
 
+from multiprocessing import Pool, cpu_count
+
 class Net(nn.Module):
     def __init__(self, obs_size, action_size, nhid):
         super(Net, self).__init__()
@@ -24,7 +26,9 @@ class Net(nn.Module):
         return self.net(x)
 
 
-def evaluate(env, net):
+def evaluate(net_in_env):
+    net, env = net_in_env
+    env.seed(0)
     obs = env.reset()
     reward = 0.0
     while True:
@@ -47,9 +51,14 @@ def mutate_parent(net, noise_std):
     return new_net
 
 def get_fitnesses(env, nets):
-    return [evaluate(env, net) for net in nets]
+
+    with Pool(processes=cpu_count()) as pool:
+        return list(pool.map(evaluate, zip(nets, [env]*len(nets))))
 
 if __name__ == "__main__":
+
+    np.random.seed(0)
+    torch.manual_seed(0)
 
     parser = make_parser("CartPole-v0", 32)
 
