@@ -6,6 +6,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from lib import make_parser
+
 from tensorboardX import SummaryWriter
 
 NOISE_STD = 0.01
@@ -14,12 +16,12 @@ PARENTS_COUNT = 10
 
 
 class Net(nn.Module):
-    def __init__(self, obs_size, action_size):
+    def __init__(self, obs_size, action_size, nhid):
         super(Net, self).__init__()
         self.net = nn.Sequential(
-            nn.Linear(obs_size, 32),
+            nn.Linear(obs_size, nhid),
             nn.ReLU(),
-            nn.Linear(32, action_size),
+            nn.Linear(nhid, action_size),
             nn.Softmax(dim=1)
         )
 
@@ -51,12 +53,18 @@ def mutate_parent(net):
 
 
 if __name__ == "__main__":
-    writer = SummaryWriter(comment="-cartpole-ga")
-    env = gym.make("CartPole-v0")
+
+    parser = make_parser("CartPole-v0", 32)
+
+    args = parser.parse_args()
+ 
+    writer = SummaryWriter(comment=("-%s" % args.env))
+
+    env = gym.make(args.env)
 
     gen_idx = 0
     nets = [
-        Net(env.observation_space.shape[0], env.action_space.n)
+        Net(env.observation_space.shape[0], env.action_space.n, args.hid)
         for _ in range(POPULATION_SIZE)
     ]
     population = [

@@ -91,9 +91,6 @@ def train_step(net, batch_noise, batch_reward, writer, step_idx):
 
 if __name__ == "__main__":
 
-    ENV = "CartPole-v0"
-    NHID = 32
-
     parser = make_parser("CartPole-v0", 32)
 
     args = parser.parse_args()
