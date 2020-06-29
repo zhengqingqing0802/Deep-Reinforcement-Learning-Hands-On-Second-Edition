@@ -15,7 +15,7 @@ Deep-Reinforcement-Learning-Hands-On-Second-Edition, published by Packt
 
 ## Changes made by simondlevy
 
-So far I've only changed the code in Chapter19 (Trust Regions): 
+So far I've only changed the code in Chapter19 and Chapter20:
 
 * Removed RoboSchool dependency
 
