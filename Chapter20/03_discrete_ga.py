@@ -28,7 +28,6 @@ class Net(nn.Module):
 
 def evaluate(net_in_env):
     net, env = net_in_env
-    env.seed(0)
     obs = env.reset()
     reward = 0.0
     while True:
@@ -50,15 +49,15 @@ def mutate_parent(net, noise_std):
         p.data += noise_std * noise_t
     return new_net
 
-def get_fitnesses(env, nets):
+def get_fitnesses(env, nets, seed):
+
+    if seed is not None:
+        env.seed(seed)
 
     with Pool(processes=cpu_count()) as pool:
         return list(pool.map(evaluate, zip(nets, [env]*len(nets))))
 
 if __name__ == "__main__":
-
-    np.random.seed(0)
-    torch.manual_seed(0)
 
     parser = make_parser("CartPole-v0", 32)
 
@@ -68,6 +67,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
  
+    if args.seed is not None:
+        np.random.seed(0)
+        torch.manual_seed(0)
+
     writer = SummaryWriter(comment=("-%s" % args.env))
 
     env = gym.make(args.env)
@@ -78,7 +81,7 @@ if __name__ == "__main__":
         for _ in range(args.population_size)
     ]
 
-    fits =  get_fitnesses(env, nets)
+    fits =  get_fitnesses(env, nets, args.seed)
 
     population = list(zip(nets, fits))
 
@@ -109,7 +112,7 @@ if __name__ == "__main__":
             nets.append(net)
         gen_idx += 1
 
-        fits =  get_fitnesses(env, nets)
+        fits =  get_fitnesses(env, nets, args.seed)
 
         population = [population[0]] + list(zip(nets, fits)) 
 

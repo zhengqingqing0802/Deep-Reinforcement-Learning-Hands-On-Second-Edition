@@ -26,6 +26,7 @@ def make_parser(env_id="Pendulum-v0", nhid=64):
     parser.add_argument("--hid", default=nhid, type=int, help="Hidden units, default=" + str(nhid))
     parser.add_argument("--maxeps", default=None, type=int, help="Maximum number of episodes, default=None")
     parser.add_argument("--maxhrs", default=None, type=float, help="Maximum run-time in hours, default=None")
+    parser.add_argument("--seed", default=None, type=int, help="Seed for random number generators, default=None")
 
     return parser
 
