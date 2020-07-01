@@ -98,10 +98,11 @@ def worker_func(env_name, input_queue, output_queue, nhid, env_seed, noise_std):
 
 if __name__ == "__main__":
 
+    NOISE_STD = 0.01
     POPULATION_SIZE = 2000
     PARENTS_COUNT = 10
+
     WORKERS_COUNT = 6
-    NOISE_STD = 0.01
 
     SEEDS_PER_WORKER = POPULATION_SIZE // WORKERS_COUNT
     MAX_SEED = 2**32 - 1

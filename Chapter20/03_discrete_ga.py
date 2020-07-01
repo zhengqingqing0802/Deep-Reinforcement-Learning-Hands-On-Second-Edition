@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from lib import make_parser_with_seed
+from lib import make_ga_parser
 
 from tensorboardX import SummaryWriter
 
@@ -59,11 +59,7 @@ def get_fitnesses(env, nets, seed):
 
 if __name__ == "__main__":
 
-    parser = make_parser_with_seed("CartPole-v0", 32)
-
-    parser.add_argument("--noise-std", type=float, default=0.01)
-    parser.add_argument("--population-size", type=int, default=50)
-    parser.add_argument("--parents-count", type=int, default=10)
+    parser = make_ga_parser("CartPole-v0", 32, 50)
 
     args = parser.parse_args()
  
