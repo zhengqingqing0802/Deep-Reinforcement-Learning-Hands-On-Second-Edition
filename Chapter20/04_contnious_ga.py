@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.multiprocessing as mp
 
-from lib import make_parser
+from lib import make_parser_with_seed
 
 from tensorboardX import SummaryWriter
 
@@ -38,9 +38,10 @@ class Net(nn.Module):
         return self.mu(x)
 
 
-def evaluate(net_in_env):
-    net, env = net_in_env
-    env.seed(0)
+def evaluate(args):
+    net, env, seed = args
+    if seed is not None:
+        env.seed(seed)
     obs = env.reset()
     reward = 0.0
     steps = 0
@@ -78,7 +79,7 @@ OutputItem = collections.namedtuple(
     'OutputItem', field_names=['seeds', 'reward', 'steps'])
 
 
-def worker_func(env_name, input_queue, output_queue, nhid):
+def worker_func(env_name, input_queue, output_queue, nhid,env_seed):
     env = gym.make(env_name)
     cache = {}
 
@@ -97,7 +98,7 @@ def worker_func(env_name, input_queue, output_queue, nhid):
             else:
                 net = build_net(env, net_seeds, nhid)
             new_cache[net_seeds] = net
-            reward, steps = evaluate((net,env))
+            reward, steps = evaluate((net,env,env_seed))
             output_queue.put(OutputItem(
                 seeds=net_seeds, reward=reward, steps=steps))
         cache = new_cache
@@ -107,13 +108,14 @@ if __name__ == "__main__":
 
     mp.set_start_method('spawn')
 
-    parser = make_parser("Pendulum-v0", 64)
+    parser = make_parser_with_seed("Pendulum-v0", 64)
 
     args = parser.parse_args()
 
     writer = SummaryWriter(comment=args.env)
 
-    np.random.seed(0)
+    if args.seed is not None:
+        np.random.seed(0)
 
     input_queues = []
     output_queue = mp.Queue(maxsize=WORKERS_COUNT)
@@ -121,7 +123,7 @@ if __name__ == "__main__":
     for _ in range(WORKERS_COUNT):
         input_queue = mp.Queue(maxsize=1)
         input_queues.append(input_queue)
-        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid))
+        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, args.seed))
         w.start()
         seeds = [(np.random.randint(MAX_SEED),) for _ in range(SEEDS_PER_WORKER)]
         input_queue.put(seeds)
