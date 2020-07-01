@@ -103,11 +103,12 @@ if __name__ == "__main__":
     mp.set_start_method('spawn')
 
     parser = make_ga_parser("Pendulum-v0", 64, 2000)
-    parser.add_argument("--workers-count", type=int, default=6)
 
     args = parser.parse_args()
 
-    seeds_per_worker = args.population_size // args.workers_count
+    workers_count = mp.cpu_count()
+
+    seeds_per_worker = args.population_size // workers_count
 
     writer = SummaryWriter(comment=args.env)
 
@@ -115,9 +116,9 @@ if __name__ == "__main__":
         np.random.seed(0)
 
     input_queues = []
-    output_queue = mp.Queue(maxsize=args.workers_count)
+    output_queue = mp.Queue(workers_count)
     workers = []
-    for _ in range(args.workers_count):
+    for _ in range(workers_count):
         input_queue = mp.Queue(maxsize=1)
         input_queues.append(input_queue)
         w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, args.seed, args.noise_std))
@@ -131,7 +132,7 @@ if __name__ == "__main__":
         t_start = time.time()
         batch_steps = 0
         population = []
-        while len(population) < seeds_per_worker * args.workers_count:
+        while len(population) < seeds_per_worker * workers_count:
             out_item = output_queue.get()
             population.append((out_item.seeds, out_item.reward))
             batch_steps += out_item.steps
