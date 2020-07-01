@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.multiprocessing as mp
 
-from lib import make_parser_with_seed
+from lib import make_ga_parser
 
 from tensorboardX import SummaryWriter
 
@@ -98,20 +98,17 @@ def worker_func(env_name, input_queue, output_queue, nhid, env_seed, noise_std):
 
 if __name__ == "__main__":
 
-    NOISE_STD = 0.01
-    POPULATION_SIZE = 2000
-    PARENTS_COUNT = 10
-
     WORKERS_COUNT = 6
 
-    SEEDS_PER_WORKER = POPULATION_SIZE // WORKERS_COUNT
     MAX_SEED = 2**32 - 1
 
     mp.set_start_method('spawn')
 
-    parser = make_parser_with_seed("Pendulum-v0", 64)
+    parser = make_ga_parser("Pendulum-v0", 64, 2000)
 
     args = parser.parse_args()
+
+    seeds_per_worker = args.population_size // WORKERS_COUNT
 
     writer = SummaryWriter(comment=args.env)
 
@@ -124,9 +121,9 @@ if __name__ == "__main__":
     for _ in range(WORKERS_COUNT):
         input_queue = mp.Queue(maxsize=1)
         input_queues.append(input_queue)
-        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, args.seed, NOISE_STD))
+        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, args.seed, args.noise_std))
         w.start()
-        seeds = [(np.random.randint(MAX_SEED),) for _ in range(SEEDS_PER_WORKER)]
+        seeds = [(np.random.randint(MAX_SEED),) for _ in range(seeds_per_worker)]
         input_queue.put(seeds)
 
     gen_idx = 0
@@ -135,14 +132,14 @@ if __name__ == "__main__":
         t_start = time.time()
         batch_steps = 0
         population = []
-        while len(population) < SEEDS_PER_WORKER * WORKERS_COUNT:
+        while len(population) < seeds_per_worker * WORKERS_COUNT:
             out_item = output_queue.get()
             population.append((out_item.seeds, out_item.reward))
             batch_steps += out_item.steps
         if elite is not None:
             population.append(elite)
         population.sort(key=lambda p: p[1], reverse=True)
-        rewards = [p[1] for p in population[:PARENTS_COUNT]]
+        rewards = [p[1] for p in population[:args.parents_count]]
         reward_mean = np.mean(rewards)
         reward_max = np.max(rewards)
         reward_std = np.std(rewards)
@@ -159,8 +156,8 @@ if __name__ == "__main__":
         elite = population[0]
         for worker_queue in input_queues:
             seeds = []
-            for _ in range(SEEDS_PER_WORKER):
-                parent = np.random.randint(PARENTS_COUNT)
+            for _ in range(seeds_per_worker):
+                parent = np.random.randint(args.parents_count)
                 next_seed = np.random.randint(MAX_SEED)
                 s = list(population[parent][0]) + [next_seed]
                 seeds.append(tuple(s))
