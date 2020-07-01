@@ -38,7 +38,9 @@ class Net(nn.Module):
         return self.mu(x)
 
 
-def evaluate(env, net):
+def evaluate(net_in_env):
+    net, env = net_in_env
+    env.seed(0)
     obs = env.reset()
     reward = 0.0
     steps = 0
@@ -95,7 +97,7 @@ def worker_func(env_name, input_queue, output_queue, nhid):
             else:
                 net = build_net(env, net_seeds, nhid)
             new_cache[net_seeds] = net
-            reward, steps = evaluate(env, net)
+            reward, steps = evaluate((net,env))
             output_queue.put(OutputItem(
                 seeds=net_seeds, reward=reward, steps=steps))
         cache = new_cache
@@ -110,6 +112,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     writer = SummaryWriter(comment=args.env)
+
+    np.random.seed(0)
 
     input_queues = []
     output_queue = mp.Queue(maxsize=WORKERS_COUNT)
