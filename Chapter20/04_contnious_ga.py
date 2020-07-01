@@ -14,12 +14,6 @@ from lib import make_parser_with_seed
 from tensorboardX import SummaryWriter
 
 NOISE_STD = 0.01
-POPULATION_SIZE = 2000
-PARENTS_COUNT = 10
-WORKERS_COUNT = 6
-SEEDS_PER_WORKER = POPULATION_SIZE // WORKERS_COUNT
-MAX_SEED = 2**32 - 1
-
 
 class Net(nn.Module):
     def __init__(self, obs_size, act_size, hid_size):
@@ -105,6 +99,12 @@ def worker_func(env_name, input_queue, output_queue, nhid,env_seed):
 
 
 if __name__ == "__main__":
+
+    POPULATION_SIZE = 2000
+    PARENTS_COUNT = 10
+    WORKERS_COUNT = 6
+    SEEDS_PER_WORKER = POPULATION_SIZE // WORKERS_COUNT
+    MAX_SEED = 2**32 - 1
 
     mp.set_start_method('spawn')
 
