@@ -26,8 +26,8 @@ class Net(nn.Module):
         return self.net(x)
 
 
-def evaluate(net_in_env):
-    net, env = net_in_env
+def evaluate(args):
+    net, env = args
     obs = env.reset()
     reward = 0.0
     while True:
