@@ -57,7 +57,7 @@ class Net(nn.Module):
         l3 = self.nonlin(self.l3(l2))
         return l3
 
-    def set_noise_seeds(self, seeds):
+    def set_noise_seeds(self, seeds, noise_std):
         batch_size = len(seeds)
         self.l1.set_noise_dim(batch_size)
         self.l2.set_noise_dim(batch_size)
@@ -65,9 +65,9 @@ class Net(nn.Module):
 
         for idx, seed in enumerate(seeds):
             np.random.seed(seed)
-            self.l1.sample_noise_row(idx, NOISE_STD)
-            self.l2.sample_noise_row(idx, NOISE_STD)
-            self.l3.sample_noise_row(idx, NOISE_STD)
+            self.l1.sample_noise_row(idx, noise_std)
+            self.l2.sample_noise_row(idx, noise_std)
+            self.l3.sample_noise_row(idx, noise_std)
 
     def zero_noise(self, batch_size):
         self.l1.set_noise_dim(batch_size)
@@ -157,7 +157,7 @@ def worker_func(env_name, input_queue, output_queue, nhid, device):
             batch = list(children_iter)
             children_seeds = [b[-1] for b in batch]
             net = build_net(env_pool[0], parent_seeds, nhid).to(device)
-            net.set_noise_seeds(children_seeds)
+            net.set_noise_seeds(children_seeds, NOISE_STD)
             batch_size = len(children_seeds)
             while len(env_pool) < batch_size:
                 env_pool.append(gym.make(env_name))
