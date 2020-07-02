@@ -18,7 +18,6 @@ NOISE_STD = 0.005
 POPULATION_SIZE = 2000
 PARENTS_COUNT = 10
 WORKERS_COUNT = 2
-SEEDS_PER_WORKER = POPULATION_SIZE // WORKERS_COUNT
 
 
 class MultiNoiseLinear(nn.Linear):
@@ -172,6 +171,7 @@ def worker_func(env_name, input_queue, output_queue, nhid, device):
 
 if __name__ == "__main__":
 
+    SEEDS_PER_WORKER = POPULATION_SIZE // WORKERS_COUNT
     MAX_SEED = 2**32 - 1
 
     mp.set_start_method('spawn')
