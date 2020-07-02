@@ -125,11 +125,11 @@ def mutate_net(net, seed, noise_std, copy_net=True):
     return new_net
 
 
-def build_net(env, seeds, nhid):
+def build_net(env, seeds, nhid, noise_std):
     torch.manual_seed(seeds[0])
     net = Net(env.observation_space.shape[0], env.action_space.shape[0], nhid)
     for seed in seeds[1:]:
-        net = mutate_net(net, seed, NOISE_STD, copy_net=False)
+        net = mutate_net(net, seed, noise_std, copy_net=False)
     return net
 
 
@@ -143,7 +143,7 @@ def worker_func(env_name, input_queue, output_queue, nhid, device):
     # first generation -- just evaluate given single seeds
     parents = input_queue.get()
     for seed in parents:
-        net = build_net(env_pool[0], seed, nhid).to(device)
+        net = build_net(env_pool[0], seed, nhid, NOISE_STD).to(device)
         net.zero_noise(batch_size=1)
         reward, steps = evaluate(env_pool[0], net, device)
         output_queue.put((seed, reward, steps))
@@ -156,7 +156,7 @@ def worker_func(env_name, input_queue, output_queue, nhid, device):
         for parent_seeds, children_iter in itertools.groupby(parents, key=lambda s: s[:-1]):
             batch = list(children_iter)
             children_seeds = [b[-1] for b in batch]
-            net = build_net(env_pool[0], parent_seeds, nhid).to(device)
+            net = build_net(env_pool[0], parent_seeds, nhid, NOISE_STD).to(device)
             net.set_noise_seeds(children_seeds, NOISE_STD)
             batch_size = len(children_seeds)
             while len(env_pool) < batch_size:
