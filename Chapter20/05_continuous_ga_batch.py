@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.multiprocessing as mp
 
-from lib import make_parser
+from lib import make_ga_parser
 
 from tensorboardX import SummaryWriter
 
@@ -168,17 +168,15 @@ if __name__ == "__main__":
 
     MAX_SEED = 2**32 - 1
 
-    NOISE_STD = 0.005
-    POPULATION_SIZE = 2000
-    PARENTS_COUNT = 10
+    mp.set_start_method('spawn')
+
+    parser = make_ga_parser("Pendulum-v0", 64, 2000, 0.005)
+
+    args = parser.parse_args()
 
     workers_count = mp.cpu_count()
 
-    seeds_per_worker = POPULATION_SIZE // workers_count
-
-    mp.set_start_method('spawn')
-
-    parser = make_parser("Pendulum-v0", 64)
+    seeds_per_worker = args.population_size // workers_count
 
     parser.add_argument("--cuda", default=False, action='store_true')
     args = parser.parse_args()
@@ -192,7 +190,7 @@ if __name__ == "__main__":
     for _ in range(workers_count):
         input_queue = mp.Queue(maxsize=1)
         input_queues.append(input_queue)
-        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, device, NOISE_STD))
+        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, device, args.noise_std))
         w.start()
         seeds = [(np.random.randint(MAX_SEED),) for _ in range(seeds_per_worker)]
         input_queue.put(seeds)
@@ -210,7 +208,7 @@ if __name__ == "__main__":
         if elite is not None:
             population.append(elite)
         population.sort(key=lambda p: p[1], reverse=True)
-        rewards = [p[1] for p in population[:PARENTS_COUNT]]
+        rewards = [p[1] for p in population[:args.parents_count]]
         reward_mean = np.mean(rewards)
         reward_max = np.max(rewards)
         reward_std = np.std(rewards)
@@ -228,7 +226,7 @@ if __name__ == "__main__":
         for worker_queue in input_queues:
             seeds = []
             for _ in range(seeds_per_worker):
-                parent = np.random.randint(PARENTS_COUNT)
+                parent = np.random.randint(args.parents_count)
                 next_seed = np.random.randint(MAX_SEED)
                 seeds.append(tuple(list(population[parent][0]) + [next_seed]))
             worker_queue.put(seeds)
