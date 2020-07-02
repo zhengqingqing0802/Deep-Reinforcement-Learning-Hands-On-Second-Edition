@@ -171,9 +171,10 @@ if __name__ == "__main__":
     NOISE_STD = 0.005
     POPULATION_SIZE = 2000
     PARENTS_COUNT = 10
-    WORKERS_COUNT = 2
 
-    seeds_per_worker = POPULATION_SIZE // WORKERS_COUNT
+    workers_count = mp.cpu_count()
+
+    seeds_per_worker = POPULATION_SIZE // workers_count
 
     mp.set_start_method('spawn')
 
@@ -186,9 +187,9 @@ if __name__ == "__main__":
     device = "cuda" if args.cuda else "cpu"
 
     input_queues = []
-    output_queue = mp.Queue(maxsize=WORKERS_COUNT)
+    output_queue = mp.Queue(maxsize=workers_count)
     workers = []
-    for _ in range(WORKERS_COUNT):
+    for _ in range(workers_count):
         input_queue = mp.Queue(maxsize=1)
         input_queues.append(input_queue)
         w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, device, NOISE_STD))
@@ -202,7 +203,7 @@ if __name__ == "__main__":
         t_start = time.time()
         batch_steps = 0
         population = []
-        while len(population) < seeds_per_worker * WORKERS_COUNT:
+        while len(population) < seeds_per_worker * workers_count:
             seeds, reward, steps = output_queue.get()
             population.append((seeds, reward))
             batch_steps += steps
