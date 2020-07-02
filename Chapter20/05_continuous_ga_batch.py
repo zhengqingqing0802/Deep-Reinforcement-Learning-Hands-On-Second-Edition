@@ -170,8 +170,9 @@ if __name__ == "__main__":
     POPULATION_SIZE = 2000
     PARENTS_COUNT = 10
     WORKERS_COUNT = 2
-    SEEDS_PER_WORKER = POPULATION_SIZE // WORKERS_COUNT
+
     MAX_SEED = 2**32 - 1
+    seeds_per_worker = POPULATION_SIZE // WORKERS_COUNT
 
     mp.set_start_method('spawn')
 
@@ -191,7 +192,7 @@ if __name__ == "__main__":
         input_queues.append(input_queue)
         w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, device, NOISE_STD))
         w.start()
-        seeds = [(np.random.randint(MAX_SEED),) for _ in range(SEEDS_PER_WORKER)]
+        seeds = [(np.random.randint(MAX_SEED),) for _ in range(seeds_per_worker)]
         input_queue.put(seeds)
 
     gen_idx = 0
@@ -200,7 +201,7 @@ if __name__ == "__main__":
         t_start = time.time()
         batch_steps = 0
         population = []
-        while len(population) < SEEDS_PER_WORKER * WORKERS_COUNT:
+        while len(population) < seeds_per_worker * WORKERS_COUNT:
             seeds, reward, steps = output_queue.get()
             population.append((seeds, reward))
             batch_steps += steps
@@ -224,7 +225,7 @@ if __name__ == "__main__":
         elite = population[0]
         for worker_queue in input_queues:
             seeds = []
-            for _ in range(SEEDS_PER_WORKER):
+            for _ in range(seeds_per_worker):
                 parent = np.random.randint(PARENTS_COUNT)
                 next_seed = np.random.randint(MAX_SEED)
                 seeds.append(tuple(list(population[parent][0]) + [next_seed]))
