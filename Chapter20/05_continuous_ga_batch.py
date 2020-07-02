@@ -116,12 +116,12 @@ def evaluate_batch(envs, net, device="cpu"):
     return rewards, steps
 
 
-def mutate_net(net, seed, copy_net=True):
+def mutate_net(net, seed, noise_std, copy_net=True):
     new_net = copy.deepcopy(net) if copy_net else net
     np.random.seed(seed)
     for p in new_net.parameters():
         noise_t = torch.from_numpy(np.random.normal(size=p.data.size()).astype(np.float32))
-        p.data += NOISE_STD * noise_t
+        p.data += noise_std * noise_t
     return new_net
 
 
@@ -129,7 +129,7 @@ def build_net(env, seeds, nhid):
     torch.manual_seed(seeds[0])
     net = Net(env.observation_space.shape[0], env.action_space.shape[0], nhid)
     for seed in seeds[1:]:
-        net = mutate_net(net, seed, copy_net=False)
+        net = mutate_net(net, seed, NOISE_STD, copy_net=False)
     return net
 
 
