@@ -31,9 +31,9 @@ class Net(nn.Module):
 
 
 def evaluate(args):
-    net, env, seed = args
-    if seed is not None:
-        env.seed(seed)
+    net, env, env_seed = args
+    if env_seed is not None:
+        env.seed(env_seed)
     obs = env.reset()
     reward = 0.0
     steps = 0
