@@ -24,10 +24,10 @@ class MultiNoiseLinear(nn.Linear):
         self.register_buffer('noise', torch.FloatTensor(dim, self.out_features, self.in_features))
         self.register_buffer('noise_bias', torch.FloatTensor(dim, self.out_features))
 
-    def sample_noise_row(self, row):
+    def sample_noise_row(self, row, noise_std):
         # sample noise for our params
-        w_noise = NOISE_STD * torch.tensor(np.random.normal(size=self.weight.data.size()).astype(np.float32))
-        b_noise = NOISE_STD * torch.tensor(np.random.normal(size=self.bias.data.size()).astype(np.float32))
+        w_noise = noise_std * torch.tensor(np.random.normal(size=self.weight.data.size()).astype(np.float32))
+        b_noise = noise_std * torch.tensor(np.random.normal(size=self.bias.data.size()).astype(np.float32))
         self.noise[row].copy_(w_noise)
         self.noise_bias[row].copy_(b_noise)
 
@@ -65,9 +65,9 @@ class Net(nn.Module):
 
         for idx, seed in enumerate(seeds):
             np.random.seed(seed)
-            self.l1.sample_noise_row(idx)
-            self.l2.sample_noise_row(idx)
-            self.l3.sample_noise_row(idx)
+            self.l1.sample_noise_row(idx, NOISE_STD)
+            self.l2.sample_noise_row(idx, NOISE_STD)
+            self.l3.sample_noise_row(idx, NOISE_STD)
 
     def zero_noise(self, batch_size):
         self.l1.set_noise_dim(batch_size)
