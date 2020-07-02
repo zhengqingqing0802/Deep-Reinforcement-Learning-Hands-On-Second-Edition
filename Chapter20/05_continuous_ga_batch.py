@@ -14,8 +14,6 @@ from lib import make_parser
 
 from tensorboardX import SummaryWriter
 
-NOISE_STD = 0.005
-
 
 class MultiNoiseLinear(nn.Linear):
     def set_noise_dim(self, dim):
@@ -137,6 +135,8 @@ OutputItem = collections.namedtuple('OutputItem', field_names=['seeds', 'reward'
 
 
 def worker_func(env_name, input_queue, output_queue, nhid, device):
+
+    NOISE_STD = 0.005
 
     env_pool = [gym.make(env_name)]
 
