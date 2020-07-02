@@ -134,16 +134,14 @@ def build_net(env, seeds, nhid, noise_std):
 OutputItem = collections.namedtuple('OutputItem', field_names=['seeds', 'reward', 'steps'])
 
 
-def worker_func(env_name, input_queue, output_queue, nhid, device):
-
-    NOISE_STD = 0.005
+def worker_func(env_name, input_queue, output_queue, nhid, device, noise_std):
 
     env_pool = [gym.make(env_name)]
 
     # first generation -- just evaluate given single seeds
     parents = input_queue.get()
     for seed in parents:
-        net = build_net(env_pool[0], seed, nhid, NOISE_STD).to(device)
+        net = build_net(env_pool[0], seed, nhid, noise_std).to(device)
         net.zero_noise(batch_size=1)
         reward, steps = evaluate(env_pool[0], net, device)
         output_queue.put((seed, reward, steps))
@@ -156,8 +154,8 @@ def worker_func(env_name, input_queue, output_queue, nhid, device):
         for parent_seeds, children_iter in itertools.groupby(parents, key=lambda s: s[:-1]):
             batch = list(children_iter)
             children_seeds = [b[-1] for b in batch]
-            net = build_net(env_pool[0], parent_seeds, nhid, NOISE_STD).to(device)
-            net.set_noise_seeds(children_seeds, NOISE_STD)
+            net = build_net(env_pool[0], parent_seeds, nhid, noise_std).to(device)
+            net.set_noise_seeds(children_seeds, noise_std)
             batch_size = len(children_seeds)
             while len(env_pool) < batch_size:
                 env_pool.append(gym.make(env_name))
@@ -168,6 +166,7 @@ def worker_func(env_name, input_queue, output_queue, nhid, device):
 
 if __name__ == "__main__":
 
+    NOISE_STD = 0.005
     POPULATION_SIZE = 2000
     PARENTS_COUNT = 10
     WORKERS_COUNT = 2
@@ -190,7 +189,7 @@ if __name__ == "__main__":
     for _ in range(WORKERS_COUNT):
         input_queue = mp.Queue(maxsize=1)
         input_queues.append(input_queue)
-        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, device))
+        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, device, NOISE_STD))
         w.start()
         seeds = [(np.random.randint(MAX_SEED),) for _ in range(SEEDS_PER_WORKER)]
         input_queue.put(seeds)
