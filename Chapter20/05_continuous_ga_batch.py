@@ -166,12 +166,13 @@ def worker_func(env_name, input_queue, output_queue, nhid, device, noise_std):
 
 if __name__ == "__main__":
 
+    MAX_SEED = 2**32 - 1
+
     NOISE_STD = 0.005
     POPULATION_SIZE = 2000
     PARENTS_COUNT = 10
     WORKERS_COUNT = 2
 
-    MAX_SEED = 2**32 - 1
     seeds_per_worker = POPULATION_SIZE // WORKERS_COUNT
 
     mp.set_start_method('spawn')

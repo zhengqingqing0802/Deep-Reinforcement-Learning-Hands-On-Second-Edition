@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     mp.set_start_method('spawn')
 
-    parser = make_ga_parser("Pendulum-v0", 64, 2000)
+    parser = make_ga_parser("Pendulum-v0", 64, 2000, 0.01)
 
     args = parser.parse_args()
 
