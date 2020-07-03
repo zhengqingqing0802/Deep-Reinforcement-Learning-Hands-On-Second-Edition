@@ -59,13 +59,13 @@ def get_fitnesses(env, nets, seed):
 
 if __name__ == "__main__":
 
-    parser = make_ga_parser("CartPole-v0", 32, 50)
+    parser = make_ga_parser("CartPole-v0", 32, 50, 0.01)
 
     args = parser.parse_args()
  
     if args.seed is not None:
-        np.random.seed(0)
-        torch.manual_seed(0)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
 
     writer = SummaryWriter(comment=("-%s" % args.env))
 
