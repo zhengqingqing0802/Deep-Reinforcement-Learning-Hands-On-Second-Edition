@@ -82,6 +82,7 @@ if __name__ == "__main__":
     population = list(zip(nets, fits))
 
     while True:
+
         population.sort(key=lambda p: p[1], reverse=True)
         rewards = [p[1] for p in population[:args.parents_count]]
         reward_mean = np.mean(rewards)
@@ -111,5 +112,8 @@ if __name__ == "__main__":
         fits =  get_fitnesses(env, nets, args.seed)
 
         population = [population[0]] + list(zip(nets, fits)) 
+
+        if gen_idx == args.max_gen:
+            break
 
     writer.close()
