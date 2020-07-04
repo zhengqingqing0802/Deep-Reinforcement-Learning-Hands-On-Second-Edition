@@ -96,7 +96,7 @@ def worker_func(env_name, input_queue, output_queue, nhid, env_seed, noise_std):
         cache = new_cache
 
 
-if __name__ == "__main__":
+def main():
 
     MAX_SEED = 2**32 - 1
 
@@ -165,3 +165,8 @@ if __name__ == "__main__":
         gen_idx += 1
 
     pass
+
+if __name__ == "__main__":
+
+    main()
+
