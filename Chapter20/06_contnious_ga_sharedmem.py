@@ -73,9 +73,9 @@ def report(writer, pop, gen_idx, parents_count, t_start):
     writer.add_scalar("reward_max", reward_max, gen_idx)
     writer.add_scalar("batch_steps", batch_steps, gen_idx)
     writer.add_scalar("gen_seconds", time.time() - t_start, gen_idx)
-    speed = batch_steps / (time.time() - t_start)
+    speed = int(batch_steps / (time.time() - t_start))
     writer.add_scalar("speed", speed, gen_idx)
-    print("%d: reward_mean=%.2f, reward_max=%.2f, reward_std=%.2f, speed=%.2f f/s" % (
+    print("%04d:\treward_mean=%+6.2f\treward_max=%+6.2f\treward_std=%+6.2f\tspeed=%6d f/s" % (
         gen_idx, reward_mean, reward_max, reward_std, speed))
 
 def eval_fits(pop):
