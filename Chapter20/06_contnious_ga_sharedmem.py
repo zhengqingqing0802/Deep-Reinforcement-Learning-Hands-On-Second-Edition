@@ -98,7 +98,7 @@ if __name__ == "__main__":
             p.eval()
             print(p.fitness)
 
-        #population.sort(key=lambda p: p.fitness, reverse=True)
+        population.sort(key=lambda p: p.fitness, reverse=True)
 
         break
 
