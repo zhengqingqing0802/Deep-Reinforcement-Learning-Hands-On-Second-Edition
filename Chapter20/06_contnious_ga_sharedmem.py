@@ -35,6 +35,7 @@ class Individual:
         self.env = gym.make(env_name)
         self.net = Net(self.env.observation_space.shape[0], self.env.action_space.shape[0], nhid)
         self.fit = None
+        self.steps = None
 
     @staticmethod
     def eval(p):
@@ -51,7 +52,7 @@ class Individual:
             if done:
                 break
 
-        return fit
+        return fit, steps
 
 def mutate_net(net, noise_std, seed):
     if seed is not None:
@@ -84,8 +85,9 @@ def report(pop, gen_idx):
 
 def eval_fits(pop):
     with Pool(processes=cpu_count()) as pool:
-        for p,f in zip(pop, pool.map(Individual.eval, pop)):
-            p.fit = f
+        for p,fs in zip(pop, pool.map(Individual.eval, pop)):
+            p.fit   = fs[0]
+            p.steps = fs[1]
 
 if __name__ == "__main__":
 
