@@ -96,21 +96,10 @@ if __name__ == "__main__":
 
         for p in population:
             p.eval()
-            print(p.fitness)
 
         population.sort(key=lambda p: p.fitness, reverse=True)
 
-        break
-
-    '''
-        population = []
-        while len(population) < seeds_per_worker * workers_count:
-            out_item = output_queue.get()
-            population.append((out_item.seeds, out_item.reward))
-            batch_steps += out_item.steps
-        if elite is not None:
-            population.append(elite)
-        rewards = [p[1] for p in population[:args.parents_count]]
+        rewards = [p.fitness for p in population[:args.parents_count]]
         reward_mean = np.mean(rewards)
         reward_max = np.max(rewards)
         reward_std = np.std(rewards)
@@ -124,6 +113,9 @@ if __name__ == "__main__":
         print("%d: reward_mean=%.2f, reward_max=%.2f, reward_std=%.2f, speed=%.2f f/s" % (
             gen_idx, reward_mean, reward_max, reward_std, speed))
 
+        break
+
+        '''
         elite = population[0]
         for worker_queue in input_queues:
             seeds = []
