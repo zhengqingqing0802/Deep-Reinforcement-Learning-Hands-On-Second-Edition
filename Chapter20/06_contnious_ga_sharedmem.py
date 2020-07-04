@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 import gym
-import collections
-import copy
 import time
 import numpy as np
 
 import torch
 import torch.nn as nn
-import torch.multiprocessing as mp
 
 from multiprocessing import Pool, cpu_count
 
@@ -31,23 +28,27 @@ class Net(nn.Module):
     def forward(self, x):
         return self.mu(x)
 
+class Individual:
 
-def evaluate(args):
-    net, env, env_seed = args
-    if env_seed is not None:
-        env.seed(env_seed)
-    obs = env.reset()
-    reward = 0.0
-    steps = 0
-    while True:
-        obs_v = torch.FloatTensor([obs])
-        action_v = net(obs_v.type(torch.FloatTensor))
-        obs, r, done, _ = env.step(action_v.data.numpy()[0])
-        reward += r
-        steps += 1
-        if done:
-            break
-    return reward, steps
+    def __init__(self, env_name, nhid):
+
+        self.env = gym.make(env_name)
+        self.net = Net(self.env.observation_space.shape[0], self.env.action_space.shape[0], nhid)
+        self.fitness = None
+
+    def eval(self):
+
+        obs = self.env.reset()
+        self.fitness = 0
+        steps = 0
+        while True:
+            obs_v = torch.FloatTensor([obs])
+            action_v = self.net(obs_v.type(torch.FloatTensor))
+            obs, r, done, _ = self.env.step(action_v.data.numpy()[0])
+            self.fitness += r
+            steps += 1
+            if done:
+                break
 
 
 def mutate_net(net, noise_std, seed):
@@ -61,34 +62,7 @@ def mutate_net(net, noise_std, seed):
 def build_net(env, nhid, noise_std, seed=None):
     if seed is not None:
         torch.manual_seed(seed)
-    net = Net(env.observation_space.shape[0], env.action_space.shape[0], nhid)
-    mutate_net(net, noise_std, seed)
-    return net
-
-def worker_func(env_name, input_queue, output_queue, nhid, env_seed, noise_std):
-    env = gym.make(env_name)
-    cache = {}
-
-    while True:
-        parents = input_queue.get()
-        if parents is None:
-            break
-        new_cache = {}
-        for net_seeds in parents:
-            if len(net_seeds) > 1:
-                net = cache.get(net_seeds[:-1])
-                if net is not None:
-                    net = mutate_net(net, net_seeds[-1], noise_std)
-                else:
-                    net = build_net(env, net_seeds, nhid, noise_std)
-            else:
-                net = build_net(env, net_seeds, nhid, noise_std)
-            new_cache[net_seeds] = net
-            reward, steps = evaluate((net,env,env_seed))
-            output_queue.put(OutputItem(
-                seeds=net_seeds, reward=reward, steps=steps))
-        cache = new_cache
-
+    return Net(env.observation_space.shape[0], env.action_space.shape[0], nhid)
 
 if __name__ == "__main__":
 
@@ -107,25 +81,28 @@ if __name__ == "__main__":
     if args.seed is not None:
         np.random.seed(0)
 
-    nets = [build_net(gym.make(args.env), args.hid, args.noise_std, args.seed) for _ in range(args.population_size)]  
-
-    '''
-    input_queues = []
-    output_queue = mp.Queue(workers_count)
-    workers = []
-    for _ in range(workers_count):
-        input_queue = mp.Queue(maxsize=1)
-        input_queues.append(input_queue)
-        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, args.seed, args.noise_std))
-        w.start()
-        seeds = [(np.random.randint(MAX_SEED),) for _ in range(seeds_per_worker)]
-        input_queue.put(seeds)
+    # Create initial population
+    population = [Individual(args.env, args.hid) for _ in range(args.population_size)]  
 
     gen_idx = 0
+
     elite = None
+
     while True:
+
         t_start = time.time()
+
         batch_steps = 0
+
+        for p in population:
+            p.eval()
+            print(p.fitness)
+
+        #population.sort(key=lambda p: p.fitness, reverse=True)
+
+        break
+
+    '''
         population = []
         while len(population) < seeds_per_worker * workers_count:
             out_item = output_queue.get()
@@ -133,7 +110,6 @@ if __name__ == "__main__":
             batch_steps += out_item.steps
         if elite is not None:
             population.append(elite)
-        population.sort(key=lambda p: p[1], reverse=True)
         rewards = [p[1] for p in population[:args.parents_count]]
         reward_mean = np.mean(rewards)
         reward_max = np.max(rewards)
