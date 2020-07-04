@@ -36,16 +36,17 @@ class Individual:
         self.net = Net(self.env.observation_space.shape[0], self.env.action_space.shape[0], nhid)
         self.fitness = None
 
-    def eval(self):
+    @staticmethod
+    def eval(p):
 
-        obs = self.env.reset()
-        self.fitness = 0
+        obs = p.env.reset()
+        p.fitness = 0
         steps = 0
         while True:
             obs_v = torch.FloatTensor([obs])
-            action_v = self.net(obs_v.type(torch.FloatTensor))
-            obs, r, done, _ = self.env.step(action_v.data.numpy()[0])
-            self.fitness += r
+            action_v = p.net(obs_v.type(torch.FloatTensor))
+            obs, r, done, _ = p.env.step(action_v.data.numpy()[0])
+            p.fitness += r
             steps += 1
             if done:
                 break
@@ -94,8 +95,14 @@ if __name__ == "__main__":
 
         batch_steps = 0
 
-        for p in population:
-            p.eval()
+        #for p in population:
+        #    p.eval()
+
+        # Evaulate fitnesses in parallel
+        population = list(population)
+        with Pool(processes=cpu_count()) as pool:
+            for p,f in zip(population, pool.map(Individual.eval, population)):
+                p.f = f
 
         population.sort(key=lambda p: p.fitness, reverse=True)
 
