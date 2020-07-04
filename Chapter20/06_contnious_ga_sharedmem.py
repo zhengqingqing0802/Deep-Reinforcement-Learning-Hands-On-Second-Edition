@@ -81,6 +81,12 @@ def report(pop, gen_idx):
     print("%d: reward_mean=%.2f, reward_max=%.2f, reward_std=%.2f, speed=%.2f f/s" % (
         gen_idx, reward_mean, reward_max, reward_std, speed))
 
+
+def eval_fits(pop):
+    with Pool(processes=cpu_count()) as pool:
+        for p,f in zip(pop, pool.map(Individual.eval, pop)):
+            p.fit = f
+
 if __name__ == "__main__":
 
     MAX_SEED = 2**32 - 1
@@ -112,9 +118,7 @@ if __name__ == "__main__":
         batch_steps = 0
 
         # Evaulate fitnesses in parallel
-        with Pool(processes=cpu_count()) as pool:
-            for p,f in zip(pop, pool.map(Individual.eval, pop)):
-                p.fit = f
+        eval_fits(pop)
 
         # Sort population by fitness
         pop.sort(key=lambda p: p.fit, reverse=True)
