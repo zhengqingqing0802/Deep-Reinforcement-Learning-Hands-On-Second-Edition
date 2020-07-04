@@ -84,7 +84,7 @@ if __name__ == "__main__":
         np.random.seed(0)
 
     # Create initial population
-    population = [Individual(args.env, args.hid) for _ in range(args.population_size)]  
+    pop = [Individual(args.env, args.hid) for _ in range(args.pop_size)]  
 
     gen_idx = 0
 
@@ -96,18 +96,15 @@ if __name__ == "__main__":
 
         batch_steps = 0
 
-        #for p in population:
-        #    p.eval()
-
         # Evaulate fitnesses in parallel
-        population = list(population)
+        pop = list(pop)
         with Pool(processes=cpu_count()) as pool:
-            for p,f in zip(population, pool.map(Individual.eval, population)):
+            for p,f in zip(pop, pool.map(Individual.eval, pop)):
                 p.fit = f
 
-        population.sort(key=lambda p: p.fit, reverse=True)
+        pop.sort(key=lambda p: p.fit, reverse=True)
 
-        rewards = [p.fit for p in population[:args.parents_count]]
+        rewards = [p.fit for p in pop[:args.parents_count]]
         reward_mean = np.mean(rewards)
         reward_max = np.max(rewards)
         reward_std = np.std(rewards)
@@ -121,16 +118,19 @@ if __name__ == "__main__":
         print("%d: reward_mean=%.2f, reward_max=%.2f, reward_std=%.2f, speed=%.2f f/s" % (
             gen_idx, reward_mean, reward_max, reward_std, speed))
 
+
+        elite = pop[0]
+
         break
 
         '''
-        elite = population[0]
+
         for worker_queue in input_queues:
             seeds = []
             for _ in range(seeds_per_worker):
                 parent = np.random.randint(args.parents_count)
                 next_seed = np.random.randint(MAX_SEED)
-                s = list(population[parent][0]) + [next_seed]
+                s = list(pop[parent][0]) + [next_seed]
                 seeds.append(tuple(s))
             worker_queue.put(seeds)
         gen_idx += 1

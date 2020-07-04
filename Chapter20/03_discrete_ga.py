@@ -74,7 +74,7 @@ if __name__ == "__main__":
     gen_idx = 0
     nets = [
         Net(env.observation_space.shape[0], env.action_space.n, args.hid)
-        for _ in range(args.population_size)
+        for _ in range(args.pop_size)
     ]
 
     fits =  get_fitnesses(env, nets, args.seed)
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         # generate next population
         prev_population = population
         nets = []
-        for _ in range(args.population_size-1):
+        for _ in range(args.pop_size-1):
             parent_idx = np.random.randint(0, args.parents_count)
             parent = prev_population[parent_idx][0]
             net = mutate_parent(parent, args.noise_std)

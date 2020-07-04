@@ -176,7 +176,7 @@ if __name__ == "__main__":
 
     workers_count = mp.cpu_count()
 
-    seeds_per_worker = args.population_size // workers_count
+    seeds_per_worker = args.pop_size // workers_count
 
     parser.add_argument("--cuda", default=False, action='store_true')
     args = parser.parse_args()

@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     workers_count = mp.cpu_count()
 
-    seeds_per_worker = args.population_size // workers_count
+    seeds_per_worker = args.pop_size // workers_count
 
     writer = SummaryWriter(comment=args.env)
 
