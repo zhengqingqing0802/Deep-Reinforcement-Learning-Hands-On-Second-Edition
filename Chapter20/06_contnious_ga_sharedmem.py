@@ -9,6 +9,8 @@ import torch
 import torch.nn as nn
 import torch.multiprocessing as mp
 
+from multiprocessing import Pool, cpu_count
+
 from lib import make_ga_parser
 
 from tensorboardX import SummaryWriter
@@ -48,28 +50,20 @@ def evaluate(args):
     return reward, steps
 
 
-def mutate_net(net, seed, noise_std, copy_net=True):
-    new_net = copy.deepcopy(net) if copy_net else net
-    np.random.seed(seed)
-    for p in new_net.parameters():
+def mutate_net(net, noise_std, seed):
+    if seed is not None:
+        np.random.seed(seed)
+    for p in net.parameters():
         noise = np.random.normal(size=p.data.size())
         noise_t = torch.FloatTensor(noise)
         p.data += noise_std * noise_t
-    return new_net
 
-
-def build_net(env, seeds, nhid, noise_std):
-    torch.manual_seed(seeds[0])
-    net = Net(env.observation_space.shape[0],
-              env.action_space.shape[0], nhid)
-    for seed in seeds[1:]:
-        net = mutate_net(net, seed, noise_std, copy_net=False)
+def build_net(env, nhid, noise_std, seed=None):
+    if seed is not None:
+        torch.manual_seed(seed)
+    net = Net(env.observation_space.shape[0], env.action_space.shape[0], nhid)
+    mutate_net(net, noise_std, seed)
     return net
-
-
-OutputItem = collections.namedtuple(
-    'OutputItem', field_names=['seeds', 'reward', 'steps'])
-
 
 def worker_func(env_name, input_queue, output_queue, nhid, env_seed, noise_std):
     env = gym.make(env_name)
@@ -100,21 +94,22 @@ if __name__ == "__main__":
 
     MAX_SEED = 2**32 - 1
 
-    mp.set_start_method('spawn')
-
-    parser = make_ga_parser("Pendulum-v0", 64, 2000, 0.01)
+    #parser = make_ga_parser("Pendulum-v0", 64, 2000, 0.01)
+    parser = make_ga_parser("Pendulum-v0", 64, 10, 0.01)
 
     args = parser.parse_args()
 
-    workers_count = mp.cpu_count()
-
-    seeds_per_worker = args.population_size // workers_count
+    workers_count = cpu_count()
 
     writer = SummaryWriter(comment=args.env)
 
+    # XXX needed?
     if args.seed is not None:
         np.random.seed(0)
 
+    nets = [build_net(gym.make(args.env), args.hid, args.noise_std, args.seed) for _ in range(args.population_size)]  
+
+    '''
     input_queues = []
     output_queue = mp.Queue(workers_count)
     workers = []
@@ -165,3 +160,4 @@ if __name__ == "__main__":
         gen_idx += 1
 
     pass
+    '''
