@@ -90,7 +90,7 @@ def eval_fits(pop):
             p.fit   = fs[0]
             p.steps = fs[1]
 
-if __name__ == "__main__":
+def main():
 
     #parser = make_ga_parser("Pendulum-v0", 64, 2000, 0.01)
     args = parse_with_max_gen("Pendulum-v0", 64, 10, 0.01)
@@ -121,3 +121,8 @@ if __name__ == "__main__":
         report(pop, gen_idx)
 
         elite = pop[0]
+
+if __name__ == "__main__":
+    main()
+
+
