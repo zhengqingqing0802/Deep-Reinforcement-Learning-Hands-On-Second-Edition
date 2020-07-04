@@ -8,7 +8,7 @@ import torch.nn as nn
 
 from multiprocessing import Pool, cpu_count
 
-from lib import make_ga_parser_with_max_gen
+from lib import parse_with_max_gen
 
 from tensorboardX import SummaryWriter
 
@@ -92,9 +92,7 @@ if __name__ == "__main__":
     MAX_SEED = 2**32 - 1
 
     #parser = make_ga_parser("Pendulum-v0", 64, 2000, 0.01)
-    parser = make_ga_parser_with_max_gen("Pendulum-v0", 64, 10, 0.01)
-
-    args = parser.parse_args()
+    args = parse_with_max_gen("Pendulum-v0", 64, 10, 0.01)
 
     workers_count = cpu_count()
 
@@ -107,11 +105,8 @@ if __name__ == "__main__":
     # Create initial population
     pop = [Individual(args.env, args.hid) for _ in range(args.pop_size)]  
 
-    gen_idx = 0
-
-    elite = None
-
-    while True:
+    # Loop forever, or to maximum number of generations specified in command line
+    for gen_idx in range(np.inf if args.max_gen is None else args.max_gen):
 
         t_start = time.time()
 
@@ -127,8 +122,3 @@ if __name__ == "__main__":
         report(pop, gen_idx)
 
         elite = pop[0]
-
-        gen_idx += 1
-
-        if gen_idx == args.max_gen:
-            break

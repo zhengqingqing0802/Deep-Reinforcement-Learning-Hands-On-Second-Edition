@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from lib import make_ga_parser_with_max_gen
+from lib import parse_with_max_gen
 
 from tensorboardX import SummaryWriter
 
@@ -59,10 +59,8 @@ def get_fitnesses(env, nets, seed):
 
 if __name__ == "__main__":
 
-    parser = make_ga_parser_with_max_gen("CartPole-v0", 32, 50, 0.01)
+    args = parse_with_max_gen("CartPole-v0", 32, 50, 0.01)
 
-    args = parser.parse_args()
- 
     if args.seed is not None:
         np.random.seed(args.seed)
         torch.manual_seed(args.seed)
@@ -71,7 +69,6 @@ if __name__ == "__main__":
 
     env = gym.make(args.env)
 
-    gen_idx = 0
     nets = [
         Net(env.observation_space.shape[0], env.action_space.n, args.hid)
         for _ in range(args.pop_size)
@@ -81,7 +78,8 @@ if __name__ == "__main__":
 
     population = list(zip(nets, fits))
 
-    while True:
+    # Loop forever, or to maximum number of generations specified in command line
+    for gen_idx in range(args.max_gen):
 
         population.sort(key=lambda p: p[1], reverse=True)
         rewards = [p[1] for p in population[:args.parents_count]]
@@ -112,8 +110,5 @@ if __name__ == "__main__":
         fits =  get_fitnesses(env, nets, args.seed)
 
         population = [population[0]] + list(zip(nets, fits)) 
-
-        if gen_idx == args.max_gen:
-            break
 
     writer.close()
