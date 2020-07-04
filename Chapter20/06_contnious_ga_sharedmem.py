@@ -68,6 +68,7 @@ def build_net(env, nhid, noise_std, seed=None):
     return Net(env.observation_space.shape[0], env.action_space.shape[0], nhid)
 
 def report(pop, gen_idx):
+    batch_steps = np.sum([p.steps for p in pop])
     rewards = [p.fit for p in pop[:args.parents_count]]
     reward_mean = np.mean(rewards)
     reward_max = np.max(rewards)
@@ -109,8 +110,6 @@ if __name__ == "__main__":
     for gen_idx in range(np.inf if args.max_gen is None else args.max_gen):
 
         t_start = time.time()
-
-        batch_steps = 0
 
         # Evaulate fitnesses in parallel
         eval_fits(pop)
