@@ -34,23 +34,24 @@ class Individual:
 
         self.env = gym.make(env_name)
         self.net = Net(self.env.observation_space.shape[0], self.env.action_space.shape[0], nhid)
-        self.fitness = None
+        self.fit = None
 
     @staticmethod
     def eval(p):
 
         obs = p.env.reset()
-        p.fitness = 0
+        fit = 0
         steps = 0
         while True:
             obs_v = torch.FloatTensor([obs])
             action_v = p.net(obs_v.type(torch.FloatTensor))
             obs, r, done, _ = p.env.step(action_v.data.numpy()[0])
-            p.fitness += r
+            fit += r
             steps += 1
             if done:
                 break
 
+        return fit
 
 def mutate_net(net, noise_std, seed):
     if seed is not None:
@@ -102,11 +103,11 @@ if __name__ == "__main__":
         population = list(population)
         with Pool(processes=cpu_count()) as pool:
             for p,f in zip(population, pool.map(Individual.eval, population)):
-                p.f = f
+                p.fit = f
 
-        population.sort(key=lambda p: p.fitness, reverse=True)
+        population.sort(key=lambda p: p.fit, reverse=True)
 
-        rewards = [p.fitness for p in population[:args.parents_count]]
+        rewards = [p.fit for p in population[:args.parents_count]]
         reward_mean = np.mean(rewards)
         reward_max = np.max(rewards)
         reward_std = np.std(rewards)
