@@ -62,11 +62,6 @@ class Individual:
             noise_t = torch.FloatTensor(noise)
             p.data += noise_std * noise_t
 
-def build_net(env, nhid, noise_std, seed=None):
-    if seed is not None:
-        torch.manual_seed(seed)
-    return Net(env.observation_space.shape[0], env.action_space.shape[0], nhid)
-
 def report(writer, pop, gen_idx, parents_count, t_start):
     batch_steps = np.sum([p.steps for p in pop])
     rewards = [p.fit for p in pop[:parents_count]]
