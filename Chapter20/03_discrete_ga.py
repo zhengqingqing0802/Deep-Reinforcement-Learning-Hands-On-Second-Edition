@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from lib import make_ga_parser
+from lib import make_ga_parser_with_max_gen
 
 from tensorboardX import SummaryWriter
 
@@ -59,7 +59,7 @@ def get_fitnesses(env, nets, seed):
 
 if __name__ == "__main__":
 
-    parser = make_ga_parser("CartPole-v0", 32, 50, 0.01)
+    parser = make_ga_parser_with_max_gen("CartPole-v0", 32, 50, 0.01)
 
     args = parser.parse_args()
  

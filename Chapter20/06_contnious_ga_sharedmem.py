@@ -8,7 +8,7 @@ import torch.nn as nn
 
 from multiprocessing import Pool, cpu_count
 
-from lib import make_ga_parser
+from lib import make_ga_parser_with_max_gen
 
 from tensorboardX import SummaryWriter
 
@@ -66,12 +66,27 @@ def build_net(env, nhid, noise_std, seed=None):
         torch.manual_seed(seed)
     return Net(env.observation_space.shape[0], env.action_space.shape[0], nhid)
 
+def report(pop, gen_idx):
+    rewards = [p.fit for p in pop[:args.parents_count]]
+    reward_mean = np.mean(rewards)
+    reward_max = np.max(rewards)
+    reward_std = np.std(rewards)
+    writer.add_scalar("reward_mean", reward_mean, gen_idx)
+    writer.add_scalar("reward_std", reward_std, gen_idx)
+    writer.add_scalar("reward_max", reward_max, gen_idx)
+    writer.add_scalar("batch_steps", batch_steps, gen_idx)
+    writer.add_scalar("gen_seconds", time.time() - t_start, gen_idx)
+    speed = batch_steps / (time.time() - t_start)
+    writer.add_scalar("speed", speed, gen_idx)
+    print("%d: reward_mean=%.2f, reward_max=%.2f, reward_std=%.2f, speed=%.2f f/s" % (
+        gen_idx, reward_mean, reward_max, reward_std, speed))
+
 if __name__ == "__main__":
 
     MAX_SEED = 2**32 - 1
 
     #parser = make_ga_parser("Pendulum-v0", 64, 2000, 0.01)
-    parser = make_ga_parser("Pendulum-v0", 64, 10, 0.01)
+    parser = make_ga_parser_with_max_gen("Pendulum-v0", 64, 10, 0.01)
 
     args = parser.parse_args()
 
@@ -97,43 +112,19 @@ if __name__ == "__main__":
         batch_steps = 0
 
         # Evaulate fitnesses in parallel
-        pop = list(pop)
         with Pool(processes=cpu_count()) as pool:
             for p,f in zip(pop, pool.map(Individual.eval, pop)):
                 p.fit = f
 
+        # Sort population by fitness
         pop.sort(key=lambda p: p.fit, reverse=True)
 
-        rewards = [p.fit for p in pop[:args.parents_count]]
-        reward_mean = np.mean(rewards)
-        reward_max = np.max(rewards)
-        reward_std = np.std(rewards)
-        writer.add_scalar("reward_mean", reward_mean, gen_idx)
-        writer.add_scalar("reward_std", reward_std, gen_idx)
-        writer.add_scalar("reward_max", reward_max, gen_idx)
-        writer.add_scalar("batch_steps", batch_steps, gen_idx)
-        writer.add_scalar("gen_seconds", time.time() - t_start, gen_idx)
-        speed = batch_steps / (time.time() - t_start)
-        writer.add_scalar("speed", speed, gen_idx)
-        print("%d: reward_mean=%.2f, reward_max=%.2f, reward_std=%.2f, speed=%.2f f/s" % (
-            gen_idx, reward_mean, reward_max, reward_std, speed))
-
+        # Report everything
+        report(pop, gen_idx)
 
         elite = pop[0]
 
-        break
-
-        '''
-
-        for worker_queue in input_queues:
-            seeds = []
-            for _ in range(seeds_per_worker):
-                parent = np.random.randint(args.parents_count)
-                next_seed = np.random.randint(MAX_SEED)
-                s = list(pop[parent][0]) + [next_seed]
-                seeds.append(tuple(s))
-            worker_queue.put(seeds)
         gen_idx += 1
 
-    pass
-    '''
+        if gen_idx == args.max_gen:
+            break
