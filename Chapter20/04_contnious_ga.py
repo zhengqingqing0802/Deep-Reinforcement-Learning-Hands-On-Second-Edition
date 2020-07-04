@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.multiprocessing as mp
 
-from lib import make_ga_parser
+from lib import parse_with_max_gen
 
 from tensorboardX import SummaryWriter
 
@@ -102,9 +102,7 @@ def main():
 
     mp.set_start_method('spawn')
 
-    parser = make_ga_parser("Pendulum-v0", 64, 2000, 0.01)
-
-    args = parser.parse_args()
+    args = parse_with_max_gen("Pendulum-v0", 64, 2000, 0.01)
 
     workers_count = mp.cpu_count()
 
