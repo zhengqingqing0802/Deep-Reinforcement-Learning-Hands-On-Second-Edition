@@ -118,8 +118,6 @@ def main():
         for p in pop[1:]:
             p.mutate(args.noise_std, args.seed)
 
-        break
-    
 if __name__ == "__main__":
     main()
 
