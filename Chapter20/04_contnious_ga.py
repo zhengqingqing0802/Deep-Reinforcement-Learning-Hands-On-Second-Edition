@@ -124,9 +124,10 @@ def main():
         seeds = [(np.random.randint(MAX_SEED),) for _ in range(seeds_per_worker)]
         input_queue.put(seeds)
 
-    gen_idx = 0
+    
     elite = None
-    while True:
+
+    for gen_idx in range(args.max_gen):
         t_start = time.time()
         batch_steps = 0
         population = []
@@ -160,7 +161,6 @@ def main():
                 s = list(population[parent][0]) + [next_seed]
                 seeds.append(tuple(s))
             worker_queue.put(seeds)
-        gen_idx += 1
 
     pass
 
