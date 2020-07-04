@@ -86,11 +86,10 @@ def eval_fits(pop):
 
 def main():
 
-    #parser = make_ga_parser("Pendulum-v0", 64, 2000, 0.01)
-    args = parse_with_max_gen("Pendulum-v0", 64, 10, 0.01)
+    # Get command-line args
+    args = parse_with_max_gen("Pendulum-v0", 64, 100, 0.01)
 
-    workers_count = cpu_count()
-
+    # Create TensorBoard summary writer
     writer = SummaryWriter(comment=args.env)
 
     # XXX needed?
