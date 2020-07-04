@@ -67,9 +67,9 @@ def build_net(env, nhid, noise_std, seed=None):
         torch.manual_seed(seed)
     return Net(env.observation_space.shape[0], env.action_space.shape[0], nhid)
 
-def report(pop, gen_idx):
+def report(writer, pop, gen_idx, parents_count, t_start):
     batch_steps = np.sum([p.steps for p in pop])
-    rewards = [p.fit for p in pop[:args.parents_count]]
+    rewards = [p.fit for p in pop[:parents_count]]
     reward_mean = np.mean(rewards)
     reward_max = np.max(rewards)
     reward_std = np.std(rewards)
@@ -118,7 +118,7 @@ def main():
         pop.sort(key=lambda p: p.fit, reverse=True)
 
         # Report everything
-        report(pop, gen_idx)
+        report(writer, pop, gen_idx, args.parents_count, t_start)
 
         elite = pop[0]
 
