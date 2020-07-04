@@ -54,13 +54,13 @@ class Individual:
 
         return fit, steps
 
-def mutate_net(net, noise_std, seed):
-    if seed is not None:
-        np.random.seed(seed)
-    for p in net.parameters():
-        noise = np.random.normal(size=p.data.size())
-        noise_t = torch.FloatTensor(noise)
-        p.data += noise_std * noise_t
+    def mutate(self, noise_std, seed):
+        if seed is not None:
+            np.random.seed(seed)
+        for p in self.net.parameters():
+            noise = np.random.normal(size=p.data.size())
+            noise_t = torch.FloatTensor(noise)
+            p.data += noise_std * noise_t
 
 def build_net(env, nhid, noise_std, seed=None):
     if seed is not None:
@@ -82,7 +82,6 @@ def report(writer, pop, gen_idx, parents_count, t_start):
     writer.add_scalar("speed", speed, gen_idx)
     print("%d: reward_mean=%.2f, reward_max=%.2f, reward_std=%.2f, speed=%.2f f/s" % (
         gen_idx, reward_mean, reward_max, reward_std, speed))
-
 
 def eval_fits(pop):
     with Pool(processes=cpu_count()) as pool:
@@ -120,8 +119,12 @@ def main():
         # Report everything
         report(writer, pop, gen_idx, args.parents_count, t_start)
 
-        elite = pop[0]
+        # Keep an elite individual as-is, and mutate the rest
+        for p in pop[1:]:
+            p.mutate(args.noise_std, args.seed)
 
+        break
+    
 if __name__ == "__main__":
     main()
 
