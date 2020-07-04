@@ -89,8 +89,6 @@ def eval_fits(pop):
 
 if __name__ == "__main__":
 
-    MAX_SEED = 2**32 - 1
-
     #parser = make_ga_parser("Pendulum-v0", 64, 2000, 0.01)
     args = parse_with_max_gen("Pendulum-v0", 64, 10, 0.01)
 
