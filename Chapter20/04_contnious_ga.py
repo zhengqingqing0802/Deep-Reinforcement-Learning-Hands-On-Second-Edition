@@ -71,7 +71,7 @@ OutputItem = collections.namedtuple(
     'OutputItem', field_names=['seeds', 'reward', 'steps'])
 
 
-def worker_func(env_name, input_queue, output_queue, nhid, env_seed, noise_std):
+def worker_func(env_name, input_queue, output_queue, nhid, env_seed, noise_std, halt):
     env = gym.make(env_name)
     cache = {}
 
@@ -116,10 +116,11 @@ def main():
     input_queues = []
     output_queue = mp.Queue(workers_count)
     workers = []
+    halt = []
     for _ in range(workers_count):
         input_queue = mp.Queue(maxsize=1)
         input_queues.append(input_queue)
-        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, args.seed, args.noise_std))
+        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, args.seed, args.noise_std, halt))
         w.start()
         seeds = [(np.random.randint(MAX_SEED),) for _ in range(seeds_per_worker)]
         input_queue.put(seeds)
