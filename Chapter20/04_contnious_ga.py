@@ -66,10 +66,7 @@ def build_net(env, seeds, nhid, noise_std):
         net = mutate_net(net, seed, noise_std, copy_net=False)
     return net
 
-
-OutputItem = collections.namedtuple(
-    'OutputItem', field_names=['seeds', 'reward', 'steps'])
-
+OutputItem = collections.namedtuple('OutputItem', field_names=['seeds', 'reward', 'steps'])
 
 def worker_func(max_gen, env_name, input_queue, output_queue, nhid, env_seed, noise_std):
 
@@ -95,6 +92,23 @@ def worker_func(max_gen, env_name, input_queue, output_queue, nhid, env_seed, no
             output_queue.put(OutputItem(seeds=net_seeds, reward=reward, steps=steps))
         cache = new_cache
 
+
+def report(writer, population, parents_count, gen_idx, batch_steps, t_start):
+
+    rewards = [p[1] for p in population[:parents_count]]
+    reward_mean = np.mean(rewards)
+    reward_max = np.max(rewards)
+    reward_std = np.std(rewards)
+    writer.add_scalar("reward_mean", reward_mean, gen_idx)
+    writer.add_scalar("reward_std", reward_std, gen_idx)
+    writer.add_scalar("reward_max", reward_max, gen_idx)
+    writer.add_scalar("batch_steps", batch_steps, gen_idx)
+    writer.add_scalar("gen_seconds", time.time() - t_start, gen_idx)
+    speed = batch_steps / (time.time() - t_start)
+    writer.add_scalar("speed", speed, gen_idx)
+    print("%d: reward_mean=%.2f, reward_max=%.2f, reward_std=%.2f, speed=%.2f f/s" % (
+        gen_idx, reward_mean, reward_max, reward_std, speed))
+
 def main():
 
     MAX_SEED = 2**32 - 1
@@ -110,6 +124,7 @@ def main():
     if args.seed is not None:
         np.random.seed(0)
 
+    # Set up communication with workers
     input_queues = []
     output_queue = mp.Queue(workers_count)
     workers = []
@@ -125,31 +140,30 @@ def main():
     elite = None
 
     for gen_idx in range(args.max_gen):
+
         t_start = time.time()
+
+        # Get results (seeds and rewards) from workers
         batch_steps = 0
         population = []
         while len(population) < seeds_per_worker * workers_count:
             out_item = output_queue.get()
             population.append((out_item.seeds, out_item.reward))
             batch_steps += out_item.steps
+
+        # Keep the current best in the population
         if elite is not None:
             population.append(elite)
+
+        # Sort population by reward (fitness)
         population.sort(key=lambda p: p[1], reverse=True)
-        rewards = [p[1] for p in population[:args.parents_count]]
-        reward_mean = np.mean(rewards)
-        reward_max = np.max(rewards)
-        reward_std = np.std(rewards)
-        writer.add_scalar("reward_mean", reward_mean, gen_idx)
-        writer.add_scalar("reward_std", reward_std, gen_idx)
-        writer.add_scalar("reward_max", reward_max, gen_idx)
-        writer.add_scalar("batch_steps", batch_steps, gen_idx)
-        writer.add_scalar("gen_seconds", time.time() - t_start, gen_idx)
-        speed = batch_steps / (time.time() - t_start)
-        writer.add_scalar("speed", speed, gen_idx)
-        print("%d: reward_mean=%.2f, reward_max=%.2f, reward_std=%.2f, speed=%.2f f/s" % (
-            gen_idx, reward_mean, reward_max, reward_std, speed))
+        
+        # Report and store current state
+        report(writer, population, args.parents_count, gen_idx, batch_steps, t_start)
 
         elite = population[0]
+
+        # Send new random seeds to wokers
         for worker_queue in input_queues:
             seeds = []
             for _ in range(seeds_per_worker):
@@ -159,10 +173,10 @@ def main():
                 seeds.append(tuple(s))
             worker_queue.put(seeds)
 
+    # Done; shut down workers
     for w in workers:
         w.join()
 
 if __name__ == "__main__":
-
     main()
 
