@@ -99,8 +99,6 @@ def main():
 
     MAX_SEED = 2**32 - 1
 
-    #mp.set_start_method('spawn')
-
     args = parse_with_max_gen("Pendulum-v0", 64, 2000, 0.01)
 
     workers_count = mp.cpu_count()
