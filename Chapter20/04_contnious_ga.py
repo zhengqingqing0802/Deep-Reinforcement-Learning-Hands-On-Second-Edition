@@ -97,9 +97,11 @@ def worker_func(max_gen, env_name, main_to_worker_queue, worker_to_main_queue, n
         cache = new_cache
 
     # At the end, we get the best individual from the main process and save it out to a file
-    best = main_to_worker_queue.get()
-
-    #print(best)
+    while True:
+        best = main_to_worker_queue.get()
+        if isinstance(best, tuple):
+            print(best)
+            break
 
 # Main code ----------------------------------------------------------
 
@@ -209,8 +211,8 @@ def main():
         update_workers(population, main_to_worker_queues, seeds_per_worker, MAX_SEED, args.parents_count)
 
     # Ask workers to save best (only one worker will have it)
-    #for worker_queue in main_to_worker_queues:
-    #    worker_queue.put(best)
+    for worker_queue in main_to_worker_queues:
+        worker_queue.put(best)
 
     # Done; shut down workers
     for w in workers:
