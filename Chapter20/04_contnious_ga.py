@@ -149,14 +149,17 @@ def update_workers(population, input_queues, seeds_per_worker, max_seed, parents
 
 def main():
 
+    # XXX could this be automated?
     MAX_SEED = 2**32 - 1
 
+    # Get command-line args
     args = parse_with_max_gen("Pendulum-v0", 64, 2000, 0.01)
 
+    # Use all available CPUs, distributing the population equally among them
     workers_count = mp.cpu_count()
-
     seeds_per_worker = args.pop_size // workers_count
 
+    # Set up a TensorFlow summary writer using the environment name
     writer = SummaryWriter(comment=args.env)
 
     # Seed random-number generator if indicated
@@ -164,8 +167,10 @@ def main():
         np.random.seed(0)
 
     # Set up communication with workers
-    input_queues, output_queue, workers = setup_workers(workers_count, seeds_per_worker, args.max_gen, args.env, args.hid, args.seed, args.noise_std, MAX_SEED)
+    input_queues, output_queue, workers = setup_workers(workers_count, seeds_per_worker, 
+            args.max_gen, args.env, args.hid, args.seed, args.noise_std, MAX_SEED)
 
+    # This will store the fittest individual in the population
     elite = None
 
     # Loop for specified number of generations (default = inf)
