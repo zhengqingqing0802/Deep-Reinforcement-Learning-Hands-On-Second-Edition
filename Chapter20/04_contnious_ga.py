@@ -136,6 +136,17 @@ def setup_workers(workers_count, seeds_per_worker, max_gen, env, hid, env_seed, 
         input_queue.put(seeds)
     return input_queues, output_queue, workers
 
+def update_workers(population, input_queues, seeds_per_worker, max_seed, parents_count):
+
+    for worker_queue in input_queues:
+        seeds = []
+        for _ in range(seeds_per_worker):
+            parent = np.random.randint(parents_count)
+            next_seed = np.random.randint(max_seed)
+            s = list(population[parent][0]) + [next_seed]
+            seeds.append(tuple(s))
+        worker_queue.put(seeds)
+
 def main():
 
     MAX_SEED = 2**32 - 1
@@ -148,6 +159,7 @@ def main():
 
     writer = SummaryWriter(comment=args.env)
 
+    # Seed random-number generator if indicated
     if args.seed is not None:
         np.random.seed(0)
 
@@ -175,17 +187,11 @@ def main():
         # Report and store current state
         report(writer, population, args.parents_count, gen_idx, batch_steps, t_start)
 
+        # Get new best
         elite = population[0]
 
         # Send new random seeds to wokers
-        for worker_queue in input_queues:
-            seeds = []
-            for _ in range(seeds_per_worker):
-                parent = np.random.randint(args.parents_count)
-                next_seed = np.random.randint(MAX_SEED)
-                s = list(population[parent][0]) + [next_seed]
-                seeds.append(tuple(s))
-            worker_queue.put(seeds)
+        update_workers(population, input_queues, seeds_per_worker, MAX_SEED, args.parents_count)
 
     # Done; shut down workers
     for w in workers:
