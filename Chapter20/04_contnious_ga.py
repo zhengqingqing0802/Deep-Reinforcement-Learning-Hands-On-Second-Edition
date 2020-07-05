@@ -71,11 +71,12 @@ OutputItem = collections.namedtuple(
     'OutputItem', field_names=['seeds', 'reward', 'steps'])
 
 
-def worker_func(env_name, input_queue, output_queue, nhid, env_seed, noise_std, halt):
+def worker_func(max_gen, env_name, input_queue, output_queue, nhid, env_seed, noise_std):
+
     env = gym.make(env_name)
     cache = {}
 
-    while True:
+    for _ in range(max_gen):
         parents = input_queue.get()
         if parents is None:
             break
@@ -91,16 +92,33 @@ def worker_func(env_name, input_queue, output_queue, nhid, env_seed, noise_std, 
                 net = build_net(env, net_seeds, nhid, noise_std)
             new_cache[net_seeds] = net
             reward, steps = evaluate((net,env,env_seed))
-            output_queue.put(OutputItem(
-                seeds=net_seeds, reward=reward, steps=steps))
+            output_queue.put(OutputItem(seeds=net_seeds, reward=reward, steps=steps))
         cache = new_cache
 
+class InputQueue:
+
+    def __init__(self):
+
+        self.open = True
+        self.qfun = mp.Queue(maxsize=1)
+
+    def put(self, item):
+
+        self.qfun.put(item)
+
+    def get(self):
+
+        return self.qfun.get()
+
+    def close(self):
+
+        self.open = False
 
 def main():
 
     MAX_SEED = 2**32 - 1
 
-    mp.set_start_method('spawn')
+    #mp.set_start_method('spawn')
 
     args = parse_with_max_gen("Pendulum-v0", 64, 2000, 0.01)
 
@@ -116,15 +134,14 @@ def main():
     input_queues = []
     output_queue = mp.Queue(workers_count)
     workers = []
-    halt = []
     for _ in range(workers_count):
-        input_queue = mp.Queue(maxsize=1)
+        input_queue = InputQueue()
         input_queues.append(input_queue)
-        w = mp.Process(target=worker_func, args=(args.env, input_queue, output_queue, args.hid, args.seed, args.noise_std, halt))
+        w = mp.Process(target=worker_func, args=(args.max_gen, args.env, input_queue, output_queue, args.hid, args.seed, args.noise_std))
+        workers.append(w)
         w.start()
         seeds = [(np.random.randint(MAX_SEED),) for _ in range(seeds_per_worker)]
         input_queue.put(seeds)
-
     
     elite = None
 
@@ -163,7 +180,8 @@ def main():
                 seeds.append(tuple(s))
             worker_queue.put(seeds)
 
-    pass
+    for w in workers:
+        w.join()
 
 if __name__ == "__main__":
 
