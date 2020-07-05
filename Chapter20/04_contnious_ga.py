@@ -109,6 +109,33 @@ def report(writer, population, parents_count, gen_idx, batch_steps, t_start):
     print("%d: reward_mean=%.2f, reward_max=%.2f, reward_std=%.2f, speed=%.2f f/s" % (
         gen_idx, reward_mean, reward_max, reward_std, speed))
 
+
+def get_new_population(output_queue, seeds_per_worker, workers_count):
+
+    batch_steps = 0
+    population = []
+    while len(population) < seeds_per_worker * workers_count:
+        out_item = output_queue.get()
+        population.append((out_item.seeds, out_item.reward))
+        batch_steps += out_item.steps
+    return population, batch_steps
+
+
+def setup_workers(workers_count, seeds_per_worker, max_gen, env, hid, env_seed, noise_std, max_seed):
+
+    input_queues = []
+    output_queue = mp.Queue(workers_count)
+    workers = []
+    for _ in range(workers_count):
+        input_queue = mp.Queue()
+        input_queues.append(input_queue)
+        w = mp.Process(target=worker_func, args=(max_gen, env, input_queue, output_queue, hid, env_seed, noise_std))
+        workers.append(w)
+        w.start()
+        seeds = [(np.random.randint(max_seed),) for _ in range(seeds_per_worker)]
+        input_queue.put(seeds)
+    return input_queues, output_queue, workers
+
 def main():
 
     MAX_SEED = 2**32 - 1
@@ -125,31 +152,18 @@ def main():
         np.random.seed(0)
 
     # Set up communication with workers
-    input_queues = []
-    output_queue = mp.Queue(workers_count)
-    workers = []
-    for _ in range(workers_count):
-        input_queue = mp.Queue()
-        input_queues.append(input_queue)
-        w = mp.Process(target=worker_func, args=(args.max_gen, args.env, input_queue, output_queue, args.hid, args.seed, args.noise_std))
-        workers.append(w)
-        w.start()
-        seeds = [(np.random.randint(MAX_SEED),) for _ in range(seeds_per_worker)]
-        input_queue.put(seeds)
-    
+    input_queues, output_queue, workers = setup_workers(workers_count, seeds_per_worker, args.max_gen, args.env, args.hid, args.seed, args.noise_std, MAX_SEED)
+
     elite = None
 
+    # Loop for specified number of generations (default = inf)
     for gen_idx in range(args.max_gen):
 
+        # Start timer for performance tracking
         t_start = time.time()
 
         # Get results (seeds and rewards) from workers
-        batch_steps = 0
-        population = []
-        while len(population) < seeds_per_worker * workers_count:
-            out_item = output_queue.get()
-            population.append((out_item.seeds, out_item.reward))
-            batch_steps += out_item.steps
+        population, batch_steps = get_new_population(output_queue, seeds_per_worker, workers_count)
 
         # Keep the current best in the population
         if elite is not None:
