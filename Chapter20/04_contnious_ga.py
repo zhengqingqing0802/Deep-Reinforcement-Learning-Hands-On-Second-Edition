@@ -95,25 +95,6 @@ def worker_func(max_gen, env_name, input_queue, output_queue, nhid, env_seed, no
             output_queue.put(OutputItem(seeds=net_seeds, reward=reward, steps=steps))
         cache = new_cache
 
-class InputQueue:
-
-    def __init__(self):
-
-        self.open = True
-        self.qfun = mp.Queue(maxsize=1)
-
-    def put(self, item):
-
-        self.qfun.put(item)
-
-    def get(self):
-
-        return self.qfun.get()
-
-    def close(self):
-
-        self.open = False
-
 def main():
 
     MAX_SEED = 2**32 - 1
@@ -135,7 +116,7 @@ def main():
     output_queue = mp.Queue(workers_count)
     workers = []
     for _ in range(workers_count):
-        input_queue = InputQueue()
+        input_queue = mp.Queue()
         input_queues.append(input_queue)
         w = mp.Process(target=worker_func, args=(args.max_gen, args.env, input_queue, output_queue, args.hid, args.seed, args.noise_std))
         workers.append(w)
