@@ -13,6 +13,8 @@ from lib import parse_with_max_gen
 
 from tensorboardX import SummaryWriter
 
+# Common classes and data structures -------------------------------
+
 class Net(nn.Module):
     def __init__(self, obs_size, act_size, hid_size):
         super(Net, self).__init__()
@@ -29,6 +31,9 @@ class Net(nn.Module):
     def forward(self, x):
         return self.mu(x)
 
+OutputItem = collections.namedtuple('OutputItem', field_names=['seeds', 'reward', 'steps'])
+
+# Worker code -------------------------------------------------------
 
 def evaluate(args):
     net, env, env_seed = args
@@ -66,13 +71,12 @@ def build_net(env, seeds, nhid, noise_std):
         net = mutate_net(net, seed, noise_std, copy_net=False)
     return net
 
-OutputItem = collections.namedtuple('OutputItem', field_names=['seeds', 'reward', 'steps'])
-
-def worker_func(max_gen, env_name, input_queue, output_queue, nhid, env_seed, noise_std):
+def worker_func(max_gen, env_name, input_queue, worker_to_main_queue, nhid, env_seed, noise_std):
 
     env = gym.make(env_name)
     cache = {}
 
+    # Loop over generations, getting parent indicies from main process and mutating to get new population
     for _ in range(max_gen):
         parents = input_queue.get()
         if parents is None:
@@ -89,9 +93,15 @@ def worker_func(max_gen, env_name, input_queue, output_queue, nhid, env_seed, no
                 net = build_net(env, net_seeds, nhid, noise_std)
             new_cache[net_seeds] = net
             reward, steps = evaluate((net,env,env_seed))
-            output_queue.put(OutputItem(seeds=net_seeds, reward=reward, steps=steps))
+            worker_to_main_queue.put(OutputItem(seeds=net_seeds, reward=reward, steps=steps))
         cache = new_cache
 
+    # At the end, we get the best individual from the main process and save it out to a file
+    best = input_queue.get()
+
+    #print(best)
+
+# Main code ----------------------------------------------------------
 
 def report(writer, population, parents_count, gen_idx, batch_steps, t_start):
 
@@ -110,12 +120,12 @@ def report(writer, population, parents_count, gen_idx, batch_steps, t_start):
         gen_idx, reward_mean, reward_max, reward_std, speed))
 
 
-def get_new_population(output_queue, seeds_per_worker, workers_count):
+def get_new_population(worker_to_main_queue, seeds_per_worker, workers_count):
 
     batch_steps = 0
     population = []
     while len(population) < seeds_per_worker * workers_count:
-        out_item = output_queue.get()
+        out_item = worker_to_main_queue.get()
         population.append((out_item.seeds, out_item.reward))
         batch_steps += out_item.steps
     return population, batch_steps
@@ -123,29 +133,29 @@ def get_new_population(output_queue, seeds_per_worker, workers_count):
 
 def setup_workers(workers_count, seeds_per_worker, max_gen, env, hid, env_seed, noise_std, max_seed):
 
-    input_queues = []
-    output_queue = mp.Queue(workers_count)
+    main_to_worker_queues = []
+    worker_to_main_queue = mp.Queue(workers_count)
     workers = []
     for _ in range(workers_count):
         input_queue = mp.Queue()
-        input_queues.append(input_queue)
-        w = mp.Process(target=worker_func, args=(max_gen, env, input_queue, output_queue, hid, env_seed, noise_std))
+        main_to_worker_queues.append(input_queue)
+        w = mp.Process(target=worker_func, args=(max_gen, env, input_queue, worker_to_main_queue, hid, env_seed, noise_std))
         workers.append(w)
         w.start()
         seeds = [(np.random.randint(max_seed),) for _ in range(seeds_per_worker)]
         input_queue.put(seeds)
-    return input_queues, output_queue, workers
+    return main_to_worker_queues, worker_to_main_queue, workers
 
-def update_workers(population, input_queues, seeds_per_worker, max_seed, parents_count):
+def update_workers(population, main_to_worker_queues, seeds_per_worker, max_seed, parents_count):
 
-    for worker_queue in input_queues:
+    for main_to_worker_queue in main_to_worker_queues:
         seeds = []
         for _ in range(seeds_per_worker):
             parent = np.random.randint(parents_count)
             next_seed = np.random.randint(max_seed)
             s = list(population[parent][0]) + [next_seed]
             seeds.append(tuple(s))
-        worker_queue.put(seeds)
+        main_to_worker_queue.put(seeds)
 
 def main():
 
@@ -167,11 +177,11 @@ def main():
         np.random.seed(0)
 
     # Set up communication with workers
-    input_queues, output_queue, workers = setup_workers(workers_count, seeds_per_worker, 
+    main_to_worker_queues, worker_to_main_queue, workers = setup_workers(workers_count, seeds_per_worker, 
             args.max_gen, args.env, args.hid, args.seed, args.noise_std, MAX_SEED)
 
     # This will store the fittest individual in the population
-    elite = None
+    best = None
 
     # Loop for specified number of generations (default = inf)
     for gen_idx in range(args.max_gen):
@@ -180,11 +190,11 @@ def main():
         t_start = time.time()
 
         # Get results (seeds and rewards) from workers
-        population, batch_steps = get_new_population(output_queue, seeds_per_worker, workers_count)
+        population, batch_steps = get_new_population(worker_to_main_queue, seeds_per_worker, workers_count)
 
         # Keep the current best in the population
-        if elite is not None:
-            population.append(elite)
+        if best is not None:
+            population.append(best)
 
         # Sort population by reward (fitness)
         population.sort(key=lambda p: p[1], reverse=True)
@@ -193,10 +203,14 @@ def main():
         report(writer, population, args.parents_count, gen_idx, batch_steps, t_start)
 
         # Get new best
-        elite = population[0]
+        best = population[0]
 
         # Send new random seeds to wokers
-        update_workers(population, input_queues, seeds_per_worker, MAX_SEED, args.parents_count)
+        update_workers(population, main_to_worker_queues, seeds_per_worker, MAX_SEED, args.parents_count)
+
+    # Ask workers to save best (only one worker will have it)
+    #for worker_queue in main_to_worker_queues:
+    #    worker_queue.put(best)
 
     # Done; shut down workers
     for w in workers:
