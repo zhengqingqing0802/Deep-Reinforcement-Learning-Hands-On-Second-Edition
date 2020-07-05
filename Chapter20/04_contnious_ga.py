@@ -138,7 +138,8 @@ def setup_workers(workers_count, seeds_per_worker, max_gen, env, hid, env_seed, 
     for _ in range(workers_count):
         main_to_worker_queue = mp.Queue()
         main_to_worker_queues.append(main_to_worker_queue)
-        w = mp.Process(target=worker_func, args=(max_gen, env, main_to_worker_queue, worker_to_main_queue, hid, env_seed, noise_std))
+        w = mp.Process(target=worker_func, 
+                args=(max_gen, env, main_to_worker_queue, worker_to_main_queue, hid, env_seed, noise_std))
         workers.append(w)
         w.start()
         seeds = [(np.random.randint(max_seed),) for _ in range(seeds_per_worker)]
