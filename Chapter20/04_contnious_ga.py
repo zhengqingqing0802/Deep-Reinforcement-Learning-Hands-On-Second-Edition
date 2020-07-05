@@ -71,14 +71,14 @@ def build_net(env, seeds, nhid, noise_std):
         net = mutate_net(net, seed, noise_std, copy_net=False)
     return net
 
-def worker_func(max_gen, env_name, input_queue, worker_to_main_queue, nhid, env_seed, noise_std):
+def worker_func(max_gen, env_name, main_to_worker_queue, worker_to_main_queue, nhid, env_seed, noise_std):
 
     env = gym.make(env_name)
     cache = {}
 
     # Loop over generations, getting parent indicies from main process and mutating to get new population
     for _ in range(max_gen):
-        parents = input_queue.get()
+        parents = main_to_worker_queue.get()
         if parents is None:
             break
         new_cache = {}
@@ -97,7 +97,7 @@ def worker_func(max_gen, env_name, input_queue, worker_to_main_queue, nhid, env_
         cache = new_cache
 
     # At the end, we get the best individual from the main process and save it out to a file
-    best = input_queue.get()
+    best = main_to_worker_queue.get()
 
     #print(best)
 
@@ -119,7 +119,6 @@ def report(writer, population, parents_count, gen_idx, batch_steps, t_start):
     print("%d: reward_mean=%.2f, reward_max=%.2f, reward_std=%.2f, speed=%.2f f/s" % (
         gen_idx, reward_mean, reward_max, reward_std, speed))
 
-
 def get_new_population(worker_to_main_queue, seeds_per_worker, workers_count):
 
     batch_steps = 0
@@ -137,13 +136,13 @@ def setup_workers(workers_count, seeds_per_worker, max_gen, env, hid, env_seed, 
     worker_to_main_queue = mp.Queue(workers_count)
     workers = []
     for _ in range(workers_count):
-        input_queue = mp.Queue()
-        main_to_worker_queues.append(input_queue)
-        w = mp.Process(target=worker_func, args=(max_gen, env, input_queue, worker_to_main_queue, hid, env_seed, noise_std))
+        main_to_worker_queue = mp.Queue()
+        main_to_worker_queues.append(main_to_worker_queue)
+        w = mp.Process(target=worker_func, args=(max_gen, env, main_to_worker_queue, worker_to_main_queue, hid, env_seed, noise_std))
         workers.append(w)
         w.start()
         seeds = [(np.random.randint(max_seed),) for _ in range(seeds_per_worker)]
-        input_queue.put(seeds)
+        main_to_worker_queue.put(seeds)
     return main_to_worker_queues, worker_to_main_queue, workers
 
 def update_workers(population, main_to_worker_queues, seeds_per_worker, max_seed, parents_count):
