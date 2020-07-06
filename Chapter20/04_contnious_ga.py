@@ -115,7 +115,7 @@ def get_new_population(worker_to_main_queue, seeds_per_worker, workers_count):
     return population, batch_steps
 
 
-def setup_workers(args, workers_count, seeds_per_worker, max_seed):
+def setup_workers(cmdargs, workers_count, seeds_per_worker, max_seed):
 
     main_to_worker_queues = []
     worker_to_main_queue = mp.Queue(workers_count)
@@ -124,7 +124,7 @@ def setup_workers(args, workers_count, seeds_per_worker, max_seed):
         main_to_worker_queue = mp.Queue()
         main_to_worker_queues.append(main_to_worker_queue)
         w = mp.Process(target=worker_func, 
-                args=(k, args.max_gen, args.env, main_to_worker_queue, worker_to_main_queue, args.hid, args.seed, args.noise_std))
+                args=(k, cmdargs.max_gen, cmdargs.env, main_to_worker_queue, worker_to_main_queue, cmdargs.hid, cmdargs.seed, cmdargs.noise_std))
         workers.append(w)
         w.start()
         seeds = [(np.random.randint(max_seed),) for _ in range(seeds_per_worker)]
