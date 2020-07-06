@@ -71,6 +71,10 @@ def build_net(env, seeds, nhid, noise_std):
         net = mutate_net(net, seed, noise_std, copy_net=False)
     return net
 
+def save_net(net):
+
+    print(net)
+
 def worker_func(max_gen, env_name, main_to_worker_queue, worker_to_main_queue, nhid, env_seed, noise_std):
 
     env = gym.make(env_name)
@@ -102,7 +106,7 @@ def worker_func(max_gen, env_name, main_to_worker_queue, worker_to_main_queue, n
         if isinstance(best, tuple):
             key = best[0]
             if key in cache:
-                print(cache[key])
+                save_net(cache[key])
             break
 
 # Main code ----------------------------------------------------------
