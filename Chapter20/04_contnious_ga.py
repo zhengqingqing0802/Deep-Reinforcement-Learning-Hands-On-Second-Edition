@@ -144,6 +144,13 @@ def update_workers(population, main_to_worker_queues, seeds_per_worker, max_seed
             seeds.append(tuple(s))
         main_to_worker_queue.put(seeds)
 
+def make_save_path(name):
+    save_path  = None
+    if name is not None:
+        save_path = os.path.join("saves", "%s" % name)
+        os.makedirs(save_path, exist_ok=True)
+    return save_path
+
 def main():
 
     # XXX could this be automated?
@@ -153,12 +160,9 @@ def main():
     args = parse_with_max_gen("Pendulum-v0", 64, 2000, 0.01)
 
     # Make save directory if indicated
-    save_path  = None
-    if args.name is not None:
-        save_path = os.path.join("saves", "%s" % args.name)
-        os.makedirs(save_path, exist_ok=True)
+    save_path = make_save_path(args.name)
 
-     # Use all available CPUs, distributing the population equally among them
+    # Use all available CPUs, distributing the population equally among them
     workers_count = mp.cpu_count()
     seeds_per_worker = args.pop_size // workers_count
 
