@@ -168,8 +168,6 @@ def main():
     # This will store the fittest individual in the population
     best = None
 
-    reward_max = None
-
     # Loop for specified number of generations (default = inf)
     for gen_idx in range(args.max_gen):
 
