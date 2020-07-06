@@ -81,10 +81,11 @@ def worker_func(id, cmdargs, main_to_worker_queue, worker_to_main_queue, noise_s
             worker_to_main_queue.put(OutputItem(seeds=net_seeds, reward=reward, steps=steps))
         cache = new_cache
 
-    # Write best net to file
-    nets = list(cache.values())
-    rewards = [pair[0] for pair in [evaluate((net, env, cmdargs.seed)) for net in nets]]
-    print(max(rewards))
+    # Write best net to file if indicated
+    if cmdargs.name is not none:
+        nets = list(cache.values())
+        rewards = [pair[0] for pair in [evaluate((net, env, cmdargs.seed)) for net in nets]]
+        print(max(rewards))
 
 # Main code ----------------------------------------------------------
 

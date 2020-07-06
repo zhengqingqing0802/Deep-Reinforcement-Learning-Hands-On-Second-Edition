@@ -38,7 +38,7 @@ def parse_with_max_gen(default_env, default_hid, default_popsize, default_noise_
 
     parser = make_ga_parser(default_env, default_hid, default_popsize, default_noise_std)
     parser.add_argument('--max-gen', default=None, type=int, help='Maximum number of generations, default=inf')
-    parser.add_argument('--name', required=False, help='Name of the run')
+    parser.add_argument('--name', required=False, help='Name of the run for saving')
     args = parser.parse_args()
     if args.max_gen is None:
         args.max_gen = np.iinfo(np.uint32).max
