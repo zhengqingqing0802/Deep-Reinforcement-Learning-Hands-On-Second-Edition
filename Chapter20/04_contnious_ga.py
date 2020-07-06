@@ -100,7 +100,7 @@ def worker_func(max_gen, env_name, main_to_worker_queue, worker_to_main_queue, n
     while True:
         best = main_to_worker_queue.get()
         if isinstance(best, tuple):
-            print(best)
+            print(best[0] in cache)
             break
 
 # Main code ----------------------------------------------------------
