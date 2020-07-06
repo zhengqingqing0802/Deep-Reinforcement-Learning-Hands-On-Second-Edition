@@ -105,8 +105,8 @@ def report(writer, population, parents_count, gen_idx, batch_steps, t_start):
     writer.add_scalar("gen_seconds", time.time() - t_start, gen_idx)
     speed = batch_steps / (time.time() - t_start)
     writer.add_scalar("speed", speed, gen_idx)
-    print("%d: reward_mean=%.2f, reward_max=%.2f, reward_std=%.2f, speed=%.2f f/s" % (
-        gen_idx, reward_mean, reward_max, reward_std, speed))
+    print("%04d: reward_mean=%+6.2f\treward_max=%+6.2f\treward_std=%6.2f\tspeed=%d f/s" % (
+        gen_idx, reward_mean, reward_max, reward_std, int(speed)))
 
 def get_new_population(worker_to_main_queue, seeds_per_worker, workers_count):
 
