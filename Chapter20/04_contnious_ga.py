@@ -81,7 +81,7 @@ def worker_func(id, max_gen, env_name, main_to_worker_queue, worker_to_main_queu
             worker_to_main_queue.put(OutputItem(seeds=net_seeds, reward=reward, steps=steps))
         cache = new_cache
 
-    # Write bet net to file
+    # Write best net to file
     nets = list(cache.values())
     rewards = [pair[0] for pair in [evaluate((net, env, env_seed)) for net in nets]]
     print(max(rewards))
@@ -115,7 +115,7 @@ def get_new_population(worker_to_main_queue, seeds_per_worker, workers_count):
     return population, batch_steps
 
 
-def setup_workers(workers_count, seeds_per_worker, max_gen, env, hid, env_seed, noise_std, max_seed):
+def setup_workers(workers_count, seeds_per_worker, args, max_seed):
 
     main_to_worker_queues = []
     worker_to_main_queue = mp.Queue(workers_count)
@@ -124,7 +124,7 @@ def setup_workers(workers_count, seeds_per_worker, max_gen, env, hid, env_seed, 
         main_to_worker_queue = mp.Queue()
         main_to_worker_queues.append(main_to_worker_queue)
         w = mp.Process(target=worker_func, 
-                args=(k, max_gen, env, main_to_worker_queue, worker_to_main_queue, hid, env_seed, noise_std))
+                args=(k, args.max_gen, args.env, main_to_worker_queue, worker_to_main_queue, args.hid, args.seed, args.noise_std))
         workers.append(w)
         w.start()
         seeds = [(np.random.randint(max_seed),) for _ in range(seeds_per_worker)]
@@ -162,8 +162,7 @@ def main():
         np.random.seed(0)
 
     # Set up communication with workers
-    main_to_worker_queues, worker_to_main_queue, workers = setup_workers(workers_count, seeds_per_worker, 
-            args.max_gen, args.env, args.hid, args.seed, args.noise_std, MAX_SEED)
+    main_to_worker_queues, worker_to_main_queue, workers = setup_workers(workers_count, seeds_per_worker, args, MAX_SEED)
 
     # This will store the fittest individual in the population
     best = None
