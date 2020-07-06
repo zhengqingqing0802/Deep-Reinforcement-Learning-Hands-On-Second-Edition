@@ -58,7 +58,7 @@ def save_net(net):
     fname = 'best.net'
     print('Saving ' + fname)
 
-def worker_func(max_gen, env_name, main_to_worker_queue, worker_to_main_queue, nhid, env_seed, noise_std):
+def worker_func(id, max_gen, env_name, main_to_worker_queue, worker_to_main_queue, nhid, env_seed, noise_std):
 
     env = gym.make(env_name)
     cache = {}
@@ -77,19 +77,13 @@ def worker_func(max_gen, env_name, main_to_worker_queue, worker_to_main_queue, n
             else:
                 net = build_net(env, net_seeds, nhid, noise_std)
             new_cache[net_seeds] = net
-            reward, steps = evaluate((net,env,env_seed))
+            reward, steps = evaluate((net, env, env_seed))
             worker_to_main_queue.put(OutputItem(seeds=net_seeds, reward=reward, steps=steps))
         cache = new_cache
 
-    # At the end, we get the best individual from the main process and save it out to a file
-    while True:
-        best = main_to_worker_queue.get()
-        if isinstance(best, tuple):
-            key = best[0]
-            #print(key, key in cache, key in new_cache)
-            if key in cache:
-                save_net(cache[key])
-            break
+    if id == 0:
+        for net in cache.values():
+            print(evaluate((net, env, env_seed)))
 
 # Main code ----------------------------------------------------------
 
@@ -125,11 +119,11 @@ def setup_workers(workers_count, seeds_per_worker, max_gen, env, hid, env_seed, 
     main_to_worker_queues = []
     worker_to_main_queue = mp.Queue(workers_count)
     workers = []
-    for _ in range(workers_count):
+    for k in range(workers_count):
         main_to_worker_queue = mp.Queue()
         main_to_worker_queues.append(main_to_worker_queue)
         w = mp.Process(target=worker_func, 
-                args=(max_gen, env, main_to_worker_queue, worker_to_main_queue, hid, env_seed, noise_std))
+                args=(k, max_gen, env, main_to_worker_queue, worker_to_main_queue, hid, env_seed, noise_std))
         workers.append(w)
         w.start()
         seeds = [(np.random.randint(max_seed),) for _ in range(seeds_per_worker)]
@@ -199,10 +193,6 @@ def main():
 
         # Send new random seeds to wokers
         update_workers(population, main_to_worker_queues, seeds_per_worker, MAX_SEED, args.parents_count)
-
-    # Ask workers to save best (only one worker will have it)
-    for worker_queue in main_to_worker_queues:
-        worker_queue.put(best)
 
     # Done; shut down workers
     for w in workers:
