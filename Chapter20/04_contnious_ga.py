@@ -4,6 +4,7 @@ import collections
 import copy
 import time
 import numpy as np
+import os
 
 import torch
 import torch.multiprocessing as mp
@@ -58,7 +59,7 @@ def save_net(net):
     fname = 'best.net'
     print('Saving ' + fname)
 
-def worker_func(id, cmdargs, main_to_worker_queue, worker_to_main_queue, noise_std):
+def worker_func(worker_id, cmdargs, main_to_worker_queue, worker_to_main_queue, noise_std, save_path):
 
     env = gym.make(cmdargs.env)
     cache = {}
@@ -82,10 +83,10 @@ def worker_func(id, cmdargs, main_to_worker_queue, worker_to_main_queue, noise_s
         cache = new_cache
 
     # Write best net to file if indicated
-    if cmdargs.name is not None:
+    if save_path is not None:
         nets = list(cache.values())
         rewards = [pair[0] for pair in [evaluate((net, env, cmdargs.seed)) for net in nets]]
-        print(max(rewards))
+        print(save_path, max(rewards))
 
 # Main code ----------------------------------------------------------
 
@@ -116,7 +117,7 @@ def get_new_population(worker_to_main_queue, seeds_per_worker, workers_count):
     return population, batch_steps
 
 
-def setup_workers(cmdargs, workers_count, seeds_per_worker, max_seed):
+def setup_workers(cmdargs, workers_count, seeds_per_worker, max_seed, save_path):
 
     main_to_worker_queues = []
     worker_to_main_queue = mp.Queue(workers_count)
@@ -125,7 +126,7 @@ def setup_workers(cmdargs, workers_count, seeds_per_worker, max_seed):
         main_to_worker_queue = mp.Queue()
         main_to_worker_queues.append(main_to_worker_queue)
         w = mp.Process(target=worker_func, 
-                args=(k, cmdargs, main_to_worker_queue, worker_to_main_queue, cmdargs.noise_std))
+                args=(k, cmdargs, main_to_worker_queue, worker_to_main_queue, cmdargs.noise_std, save_path))
         workers.append(w)
         w.start()
         seeds = [(np.random.randint(max_seed),) for _ in range(seeds_per_worker)]
@@ -151,7 +152,13 @@ def main():
     # Get command-line args
     args = parse_with_max_gen("Pendulum-v0", 64, 2000, 0.01)
 
-    # Use all available CPUs, distributing the population equally among them
+    # Make save directory if indicated
+    save_path  = None
+    if args.name is not None:
+        save_path = os.path.join("saves", "%s" % args.name)
+        os.makedirs(save_path, exist_ok=True)
+
+     # Use all available CPUs, distributing the population equally among them
     workers_count = mp.cpu_count()
     seeds_per_worker = args.pop_size // workers_count
 
@@ -163,7 +170,7 @@ def main():
         np.random.seed(0)
 
     # Set up communication with workers
-    main_to_worker_queues, worker_to_main_queue, workers = setup_workers(args, workers_count, seeds_per_worker, MAX_SEED)
+    main_to_worker_queues, worker_to_main_queue, workers = setup_workers(args, workers_count, seeds_per_worker, MAX_SEED, save_path)
 
     # This will store the fittest individual in the population
     best = None
