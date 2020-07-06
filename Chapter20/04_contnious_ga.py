@@ -86,7 +86,8 @@ def worker_func(worker_id, cmdargs, main_to_worker_queue, worker_to_main_queue, 
     if save_path is not None:
         nets = list(cache.values())
         rewards = [pair[0] for pair in [evaluate((net, env, cmdargs.seed)) for net in nets]]
-        print(save_path, max(rewards))
+        fname = '%s-%04d-best%+f' % (save_path, worker_id, max(rewards))
+        print(fname)
 
 # Main code ----------------------------------------------------------
 
@@ -145,6 +146,7 @@ def update_workers(population, main_to_worker_queues, seeds_per_worker, max_seed
         main_to_worker_queue.put(seeds)
 
 def make_save_path(name):
+
     save_path  = None
     if name is not None:
         save_path = os.path.join("saves", "%s" % name)
