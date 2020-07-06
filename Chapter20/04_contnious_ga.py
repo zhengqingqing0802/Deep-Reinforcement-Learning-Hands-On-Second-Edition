@@ -6,30 +6,13 @@ import time
 import numpy as np
 
 import torch
-import torch.nn as nn
 import torch.multiprocessing as mp
 
-from lib import parse_with_max_gen
+from lib import parse_with_max_gen, Net
 
 from tensorboardX import SummaryWriter
 
 # Common classes and data structures -------------------------------
-
-class Net(nn.Module):
-    def __init__(self, obs_size, act_size, hid_size):
-        super(Net, self).__init__()
-
-        self.mu = nn.Sequential(
-            nn.Linear(obs_size, hid_size),
-            nn.Tanh(),
-            nn.Linear(hid_size, hid_size),
-            nn.Tanh(),
-            nn.Linear(hid_size, act_size),
-            nn.Tanh(),
-        )
-
-    def forward(self, x):
-        return self.mu(x)
 
 OutputItem = collections.namedtuple('OutputItem', field_names=['seeds', 'reward', 'steps'])
 
@@ -72,8 +55,8 @@ def build_net(env, seeds, nhid, noise_std):
     return net
 
 def save_net(net):
-
-    print(net)
+    fname = 'best.net'
+    print('Saving ' + fname)
 
 def worker_func(max_gen, env_name, main_to_worker_queue, worker_to_main_queue, nhid, env_seed, noise_std):
 

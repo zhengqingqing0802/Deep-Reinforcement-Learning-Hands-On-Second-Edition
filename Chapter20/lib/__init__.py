@@ -1,5 +1,22 @@
 import argparse
 import numpy as np
+import torch.nn as nn
+
+class Net(nn.Module):
+    def __init__(self, obs_size, act_size, hid_size):
+        super(Net, self).__init__()
+
+        self.mu = nn.Sequential(
+            nn.Linear(obs_size, hid_size),
+            nn.Tanh(),
+            nn.Linear(hid_size, hid_size),
+            nn.Tanh(),
+            nn.Linear(hid_size, act_size),
+            nn.Tanh(),
+        )
+
+    def forward(self, x):
+        return self.mu(x)
 
 def make_parser(default_env, default_hid):
 

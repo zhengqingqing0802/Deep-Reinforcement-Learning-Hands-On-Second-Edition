@@ -6,5 +6,6 @@ __pycache__/
 *.png
 *.bak
 *.swp
+*.net
 images/
 

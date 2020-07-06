@@ -6,11 +6,10 @@ import numpy as np
 import collections
 
 import torch
-import torch.nn as nn
 from torch import multiprocessing as mp
 from torch import optim
 
-from lib import make_parser
+from lib import make_parser, Net
 
 from tensorboardX import SummaryWriter
 
@@ -29,22 +28,6 @@ RewardsItem = collections.namedtuple(
     'RewardsItem', field_names=['seed', 'pos_reward',
                                 'neg_reward', 'steps'])
 
-
-class Net(nn.Module):
-    def __init__(self, obs_size, act_size, hid_size):
-        super(Net, self).__init__()
-
-        self.mu = nn.Sequential(
-            nn.Linear(obs_size, hid_size),
-            nn.Tanh(),
-            nn.Linear(hid_size, hid_size),
-            nn.Tanh(),
-            nn.Linear(hid_size, act_size),
-            nn.Tanh(),
-        )
-
-    def forward(self, x):
-        return self.mu(x)
 
 def evaluate(env, net, device="cpu"):
     obs = env.reset()
