@@ -58,13 +58,13 @@ def save_net(net):
     fname = 'best.net'
     print('Saving ' + fname)
 
-def worker_func(id, max_gen, env_name, main_to_worker_queue, worker_to_main_queue, nhid, env_seed, noise_std):
+def worker_func(id, cmdargs, main_to_worker_queue, worker_to_main_queue, noise_std):
 
-    env = gym.make(env_name)
+    env = gym.make(cmdargs.env)
     cache = {}
 
     # Loop over generations, getting parent indicies from main process and mutating to get new population
-    for _ in range(max_gen):
+    for _ in range(cmdargs.max_gen):
         parents = main_to_worker_queue.get()
         new_cache = {}
         for net_seeds in parents:
@@ -73,17 +73,17 @@ def worker_func(id, max_gen, env_name, main_to_worker_queue, worker_to_main_queu
                 if net is not None:
                     net = mutate_net(net, net_seeds[-1], noise_std)
                 else:
-                    net = build_net(env, net_seeds, nhid, noise_std)
+                    net = build_net(env, net_seeds, cmdargs.hid, noise_std)
             else:
-                net = build_net(env, net_seeds, nhid, noise_std)
+                net = build_net(env, net_seeds, cmdargs.hid, noise_std)
             new_cache[net_seeds] = net
-            reward, steps = evaluate((net, env, env_seed))
+            reward, steps = evaluate((net, env, cmdargs.seed))
             worker_to_main_queue.put(OutputItem(seeds=net_seeds, reward=reward, steps=steps))
         cache = new_cache
 
     # Write best net to file
     nets = list(cache.values())
-    rewards = [pair[0] for pair in [evaluate((net, env, env_seed)) for net in nets]]
+    rewards = [pair[0] for pair in [evaluate((net, env, cmdargs.seed)) for net in nets]]
     print(max(rewards))
 
 # Main code ----------------------------------------------------------
@@ -124,7 +124,7 @@ def setup_workers(cmdargs, workers_count, seeds_per_worker, max_seed):
         main_to_worker_queue = mp.Queue()
         main_to_worker_queues.append(main_to_worker_queue)
         w = mp.Process(target=worker_func, 
-                args=(k, cmdargs.max_gen, cmdargs.env, main_to_worker_queue, worker_to_main_queue, cmdargs.hid, cmdargs.seed, cmdargs.noise_std))
+                args=(k, cmdargs, main_to_worker_queue, worker_to_main_queue, cmdargs.noise_std))
         workers.append(w)
         w.start()
         seeds = [(np.random.randint(max_seed),) for _ in range(seeds_per_worker)]
