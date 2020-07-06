@@ -115,7 +115,7 @@ def get_new_population(worker_to_main_queue, seeds_per_worker, workers_count):
     return population, batch_steps
 
 
-def setup_workers(workers_count, seeds_per_worker, args, max_seed):
+def setup_workers(args, workers_count, seeds_per_worker, max_seed):
 
     main_to_worker_queues = []
     worker_to_main_queue = mp.Queue(workers_count)
@@ -162,7 +162,7 @@ def main():
         np.random.seed(0)
 
     # Set up communication with workers
-    main_to_worker_queues, worker_to_main_queue, workers = setup_workers(workers_count, seeds_per_worker, args, MAX_SEED)
+    main_to_worker_queues, worker_to_main_queue, workers = setup_workers(args, workers_count, seeds_per_worker, MAX_SEED)
 
     # This will store the fittest individual in the population
     best = None
