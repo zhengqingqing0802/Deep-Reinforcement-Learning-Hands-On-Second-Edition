@@ -81,9 +81,10 @@ def worker_func(id, max_gen, env_name, main_to_worker_queue, worker_to_main_queu
             worker_to_main_queue.put(OutputItem(seeds=net_seeds, reward=reward, steps=steps))
         cache = new_cache
 
-    if id == 0:
-        for net in cache.values():
-            print(evaluate((net, env, env_seed)))
+    # Write bet net to file
+    nets = list(cache.values())
+    rewards = [pair[0] for pair in [evaluate((net, env, env_seed)) for net in nets]]
+    print(max(rewards))
 
 # Main code ----------------------------------------------------------
 
