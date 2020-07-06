@@ -26,8 +26,6 @@ if __name__ == "__main__":
 
     net = torch.load(args.model)
 
-    exit(0)
-
     obs = env.reset()
     total_reward = 0.0
     total_steps = 0
