@@ -66,8 +66,6 @@ def worker_func(max_gen, env_name, main_to_worker_queue, worker_to_main_queue, n
     # Loop over generations, getting parent indicies from main process and mutating to get new population
     for _ in range(max_gen):
         parents = main_to_worker_queue.get()
-        if parents is None:
-            break
         new_cache = {}
         for net_seeds in parents:
             if len(net_seeds) > 1:
@@ -88,6 +86,7 @@ def worker_func(max_gen, env_name, main_to_worker_queue, worker_to_main_queue, n
         best = main_to_worker_queue.get()
         if isinstance(best, tuple):
             key = best[0]
+            #print(key, key in cache, key in new_cache)
             if key in cache:
                 save_net(cache[key])
             break
@@ -173,6 +172,8 @@ def main():
 
     # This will store the fittest individual in the population
     best = None
+
+    reward_max = None
 
     # Loop for specified number of generations (default = inf)
     for gen_idx in range(args.max_gen):
