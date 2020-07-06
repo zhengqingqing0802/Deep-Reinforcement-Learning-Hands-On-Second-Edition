@@ -86,8 +86,9 @@ def worker_func(worker_id, cmdargs, main_to_worker_queue, worker_to_main_queue, 
     if save_path is not None:
         nets = list(cache.values())
         rewards = [pair[0] for pair in [evaluate((net, env, cmdargs.seed)) for net in nets]]
-        fname = '%s-%04d-best%+f' % (save_path, worker_id, max(rewards))
-        print(fname)
+        fname = '%s/%04d-best%+f.net' % (save_path, worker_id, max(rewards))
+        best_net = nets[np.argmax(rewards)]
+        torch.save(best_net, fname)
 
 # Main code ----------------------------------------------------------
 
