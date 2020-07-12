@@ -97,18 +97,18 @@ if __name__ == "__main__":
                 break
 
             if step_idx % args.test_iters == 0:
-                rewards, steps = test_net(net_act, test_env, device=device)
+                reward, steps = test_net(net_act, test_env, device=device)
                 print("Test done in %.2f sec, reward %.3f, steps %d" % (
-                    time.time() - tcurr, rewards, steps))
-                writer.add_scalar("test_reward", rewards, step_idx)
+                    time.time() - tcurr, reward, steps))
+                writer.add_scalar("test_reward", reward, step_idx)
                 writer.add_scalar("test_steps", steps, step_idx)
-                if best_reward is None or best_reward < rewards:
+                if best_reward is None or best_reward < reward:
                     if best_reward is not None:
                         print("Best reward updated: %.3f -> %.3f" % (best_reward, rewards))
                         name = "best_%+.3f_%d.dat" % (rewards, step_idx)
                         fname = os.path.join(save_path, name)
                         torch.save(net_act.state_dict(), fname)
-                    best_reward = rewards
+                    best_reward = reward
 
             trajectory.append(exp)
             if len(trajectory) < TRAJECTORY_SIZE:
