@@ -17,7 +17,7 @@ def make_nets(args, env, device):
     print(net_crt)
     return net_act, net_crt
 
-def make_parser(env_id="Pendulum-v0", nhid=64):
+def make_parser(env_id="Pendulum-v0", nhid=64, test_iters=100000):
     parser = argparse.ArgumentParser()
     parser.add_argument("--cuda", default=False, action='store_true', help='Enable CUDA')
     parser.add_argument("-n", "--name", required=True, help="Name of the run")
@@ -26,6 +26,8 @@ def make_parser(env_id="Pendulum-v0", nhid=64):
     parser.add_argument("--hid", default=nhid, type=int, help="Hidden units, default=" + str(nhid))
     parser.add_argument("--maxeps", default=None, type=int, help="Maximum number of episodes, default=None")
     parser.add_argument("--maxhrs", default=None, type=float, help="Maximum run-time in hours, default=None")
+    parser.add_argument("--test-iters", default=test_iters, type=float, 
+            help=("How often to test and save best, default =%d" % test_iters))
 
     return parser
 

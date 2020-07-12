@@ -21,8 +21,6 @@ LEARNING_RATE_CRITIC = 1e-3
 ENTROPY_BETA = 1e-3
 ENVS_COUNT = 16
 
-TEST_ITERS = 100000
-
 if __name__ == "__main__":
 
     parser = make_parser()
@@ -65,7 +63,7 @@ if __name__ == "__main__":
                 if (tcurr-tstart) >= maxsec:
                     break
  
-                if step_idx % TEST_ITERS == 0:
+                if step_idx % args.test_iters == 0:
                     rewards, steps = test_net(net_act, test_env, device=device)
                     print("Test done in %.2f sec, reward %.3f, steps %d" % (
                         time.time() - tcurr, rewards, steps))
