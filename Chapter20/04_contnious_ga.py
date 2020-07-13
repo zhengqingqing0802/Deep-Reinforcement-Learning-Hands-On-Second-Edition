@@ -204,7 +204,7 @@ def main():
         # Get new best
         best = population[0]
 
-        # Send new random seeds to wokers
+        # Send new random seeds to workers
         update_workers(population, main_to_worker_queues, seeds_per_worker, MAX_SEED, args.parents_count)
 
     # Done; shut down workers
