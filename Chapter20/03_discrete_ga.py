@@ -95,6 +95,9 @@ if __name__ == "__main__":
             gen_idx, reward_mean, reward_max, reward_std))
         if reward_mean > 199:
             print("Solved in %d steps" % gen_idx)
+            net = population[0][0]
+            for _ in range(10):
+                print(evaluate((net,env)))
             break
 
         # generate next population

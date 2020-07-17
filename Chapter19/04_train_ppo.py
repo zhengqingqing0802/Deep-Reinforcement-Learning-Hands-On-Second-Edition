@@ -104,8 +104,8 @@ if __name__ == "__main__":
                 writer.add_scalar("test_steps", steps, step_idx)
                 if best_reward is None or best_reward < reward:
                     if best_reward is not None:
-                        print("Best reward updated: %.3f -> %.3f" % (best_reward, rewards))
-                        name = "best_%+.3f_%d.dat" % (rewards, step_idx)
+                        print("Best reward updated: %.3f -> %.3f" % (best_reward, reward))
+                        name = "best_%+.3f_%d.dat" % (reward, step_idx)
                         fname = os.path.join(save_path, name)
                         torch.save(net_act.state_dict(), fname)
                     best_reward = reward
